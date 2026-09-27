@@ -1,9 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import Topbar from '../../../../components/Topbar';
+import React, { useState } from 'react';
 import {
   ArrowLeft,
   TrendingUp,
@@ -15,14 +12,15 @@ import {
   Check,
   SquarePen,
 } from 'lucide-react';
-import { mockPlans } from '../../../../data/mockData';
-import { getRestaurants, updateRestaurant, deleteRestaurant } from '../../../../data/restaurantStore';
-import { Restaurant, Branch } from '../../../../types/admin';
-import { FigmaTier, FigmaBillingCycle, FIGMA_TIERS, tierBlurb, effectiveMonthly } from '../../../../data/figmaPlans';
-import ModifyPlanModal from '../../../../components/modals/ModifyPlanModal';
-import ManualPlanActivationModal from '../../../../components/modals/ManualPlanActivationModal';
-import ManualActivationModal from '../../../../components/modals/ManualActivationModal';
-import ActionNotAllowedModal from '../../../../components/modals/ActionNotAllowedModal';
+import { mockPlans } from '../../data/mockData';
+import { getRestaurants, updateRestaurant, deleteRestaurant } from '../../data/restaurantStore';
+import { Restaurant, Branch } from '../../types/admin';
+import { FigmaTier, FigmaBillingCycle, FIGMA_TIERS, tierBlurb, effectiveMonthly } from '../../data/figmaPlans';
+import LeftPanel from '../LeftPanel';
+import ModifyPlanModal from './ModifyPlanModal';
+import ManualPlanActivationModal from './ManualPlanActivationModal';
+import ManualActivationModal from './ManualActivationModal';
+import ActionNotAllowedModal from './ActionNotAllowedModal';
 
 // Source of truth: Figma frames 1862:762 (Overview), 1465:821 (Branches),
 // 1508:1274 (Add branch), 1511:1544 (Main branch), 1512:1785 (Subscription),
@@ -569,20 +567,23 @@ function BranchDetailsPanel({
   );
 }
 
-export default function RestaurantDetailPage({
-  params,
+export default function RestaurantFlowModal({
+  restaurantId,
+  initialTab = 'Overview',
+  initialBranch = null,
+  onClose,
 }: {
-  params: Promise<{ id: string }>;
+  restaurantId: string;
+  initialTab?: Tab;
+  initialBranch?: { id: string; tab: BranchTab } | null;
+  onClose: () => void;
 }) {
-  const router = useRouter();
-  const { id } = use(params);
-
   const [restaurants, setRestaurants] = useState<Restaurant[]>(getRestaurants());
-  const restaurant = restaurants.find((r) => r.id === id) || restaurants[0];
+  const restaurant = restaurants.find((r) => r.id === restaurantId) || restaurants[0];
 
-  const [activeTab, setActiveTab] = useState<Tab>('Overview');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [branchPanel, setBranchPanel] = useState<BranchPanel>(null);
-  const [branchDetails, setBranchDetails] = useState<{ id: string; tab: BranchTab } | null>(null);
+  const [branchDetails, setBranchDetails] = useState<{ id: string; tab: BranchTab } | null>(initialBranch);
   const [formReturn, setFormReturn] = useState<'list' | 'details'>('list');
 
   // Overview form state (Figma shows fields + Cancel/Delete, no Save)
@@ -748,11 +749,8 @@ export default function RestaurantDetailPage({
   const tabs: Tab[] = ['Overview', 'Branches', 'Subscription', 'Activity'];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Topbar title={`${restaurant.name} • Details`} subtitle="Restaurant details" />
-
-      <main className="flex-1 p-4 sm:p-6 xl:p-8 w-full">
-        <div className="max-w-[680px] mx-auto space-y-5">
+    <LeftPanel onClose={onClose} labelledBy={restaurant.name} widthClass="w-[min(700px,96vw)]" tone="gray">
+      <div className="space-y-5">
           {/* Header: back / title+ID / status toggle (Figma 1862:762) */}
           {!branchDetails && (
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
@@ -774,13 +772,13 @@ export default function RestaurantDetailPage({
                 <ArrowLeft size={20} />
               </button>
             ) : (
-              <Link
-                href="/restaurants"
+              <button
+                onClick={onClose}
                 aria-label="Back to restaurants"
                 className="w-12 h-12 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
               >
                 <ArrowLeft size={20} />
-              </Link>
+              </button>
             )}
             <div className="text-center">
               <h2 className="text-2xl sm:text-3xl font-semibold text-[#2D2F33]">
@@ -964,7 +962,7 @@ export default function RestaurantDetailPage({
                       onClick={() => {
                         if (deleteArmed) {
                           deleteRestaurant(restaurant.id);
-                          router.push('/restaurants');
+                          onClose();
                         } else setDeleteArmed(true);
                       }}
                       className="py-3.5 rounded-full bg-[#E52B2B] hover:bg-red-700 text-white font-medium transition-all"
@@ -1261,8 +1259,7 @@ export default function RestaurantDetailPage({
               </div>
             </div>
           )}
-        </div>
-      </main>
+      </div>
 
       {/* Modify Plan (Figma 1692:72598) */}
       <ModifyPlanModal
@@ -1323,6 +1320,6 @@ export default function RestaurantDetailPage({
           setIsLogPaymentOpen(false);
         }}
       />
-    </div>
+    </LeftPanel>
   );
 }

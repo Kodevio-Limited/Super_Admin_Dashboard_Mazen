@@ -10,6 +10,8 @@ interface SlidePanelProps {
   labelledBy?: string;
   widthClass?: string;
   side?: 'left' | 'right';
+  // Gray canvas (Figma detail frames) keeps white cards visible.
+  tone?: 'white' | 'gray';
 }
 
 export default function LeftPanel({
@@ -18,6 +20,7 @@ export default function LeftPanel({
   labelledBy,
   widthClass = 'w-[min(560px,94vw)]',
   side = 'right',
+  tone = 'white',
 }: SlidePanelProps) {
   const right = side === 'right';
   return (
@@ -30,7 +33,7 @@ export default function LeftPanel({
         role="dialog"
         aria-modal="true"
         aria-label={labelledBy}
-        className={`fixed inset-y-0 ${right ? 'right-0 rounded-l-3xl animate-in slide-in-from-right' : 'left-0 rounded-r-3xl animate-in slide-in-from-left'} ${widthClass} bg-white shadow-2xl overflow-y-auto p-6 sm:p-8 duration-300`}
+        className={`fixed inset-y-0 ${right ? 'right-0 rounded-l-3xl animate-in slide-in-from-right' : 'left-0 rounded-r-3xl animate-in slide-in-from-left'} ${widthClass} ${tone === 'gray' ? 'bg-[#F2F2F2]' : 'bg-white'} shadow-2xl overflow-y-auto p-6 sm:p-8 duration-300`}
       >
         {children}
       </div>

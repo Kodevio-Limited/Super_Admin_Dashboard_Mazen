@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { Plus, ChevronUp, ChevronDown, Building2, SquarePen } from 'lucide-react';
 import Topbar from '../../../components/Topbar';
 import { getRestaurants, addRestaurant } from '../../../data/restaurantStore';
-import { Restaurant } from '../../../types/admin';
+import { Restaurant, Branch } from '../../../types/admin';
 import { planPill } from '../../../data/figmaPlans';
 import CreateRestaurantModal from '../../../components/modals/CreateRestaurantModal';
+import RestaurantFlowModal from '../../../components/modals/RestaurantFlowModal';
 
 // Source of truth: Figma frame "Restaurants" (1856:1628) — grouped
 // expandable restaurant/branch table. No search or filters in the frame.
@@ -23,6 +23,11 @@ export default function RestaurantsPage() {
     Object.fromEntries(getRestaurants().map((r) => [r.id, false]))
   );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // Single flow modal: restaurant edit views vs branch views open distinctly.
+  const [flow, setFlow] = useState<{
+    restaurantId: string;
+    branch?: { id: string; tab: 'Overview' | 'Subscription' | 'Activity' } | null;
+  } | null>(null);
 
   const toggle = (id: string) =>
     setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
@@ -92,13 +97,13 @@ export default function RestaurantsPage() {
                       <Dash />
                       <Dash />
                       <Dash />
-                      <Link
-                        href={`/restaurants/${rest.id}`}
+                      <button
+                        onClick={() => setFlow({ restaurantId: rest.id })}
                         aria-label={`Edit ${rest.name}`}
                         className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                       >
                         <SquarePen size={18} />
-                      </Link>
+                      </button>
                     </div>
 
                     {/* Branch rows */}
@@ -136,13 +141,18 @@ export default function RestaurantsPage() {
                               </span>
                               <span className="text-sm text-[#2D2F33]">{rest.joinedDate}</span>
                               <span className="text-sm text-[#2D2F33]">{rest.planExpiry}</span>
-                              <Link
-                                href={`/restaurants/${rest.id}`}
+                              <button
+                                onClick={() =>
+                                  setFlow({
+                                    restaurantId: rest.id,
+                                    branch: { id: branch.id, tab: 'Overview' },
+                                  })
+                                }
                                 aria-label={`Edit ${branch.name}`}
                                 className="w-11 h-11 rounded-lg bg-[#E9E9E9] hover:bg-gray-300 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                               >
                                 <SquarePen size={18} />
-                              </Link>
+                              </button>
                             </div>
                           );
                         })}
@@ -164,7 +174,20 @@ export default function RestaurantsPage() {
           setRestaurants(getRestaurants());
           setExpanded((prev) => ({ ...prev, [newRest.id]: true }));
         }}
+        onViewRestaurant={(id) => setFlow({ restaurantId: id })}
       />
+
+      {flow && (
+        <RestaurantFlowModal
+          key={`${flow.restaurantId}-${flow.branch?.id || 'rest'}`}
+          restaurantId={flow.restaurantId}
+          initialBranch={flow.branch || null}
+          onClose={() => {
+            setFlow(null);
+            setRestaurants(getRestaurants());
+          }}
+        />
+      )}
     </div>
   );
 }

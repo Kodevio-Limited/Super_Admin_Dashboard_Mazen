@@ -36,6 +36,8 @@ export default function PlanTierPicker({
 
   return (
     <div className="space-y-3">
+      {/* No billing toggle in priceless mode (Figma 1864:870 has none) */}
+      {showPrices && (
       <div className="flex flex-wrap items-center justify-center gap-2">
         <div className="flex flex-wrap items-center bg-[#F2F2F2] p-1.5 rounded-full text-sm font-medium">
           {FIGMA_CYCLES.map((b) => (
@@ -57,6 +59,7 @@ export default function PlanTierPicker({
           ))}
         </div>
       </div>
+      )}
 
       <div className={`grid grid-cols-1 ${singleColumn ? '' : 'md:grid-cols-3'} gap-4 pt-4`}>
         {FIGMA_TIERS.map((plan) => {
@@ -73,7 +76,7 @@ export default function PlanTierPicker({
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              {plan.isPopular && (
+              {plan.isPopular && showPrices && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#026F4F] text-white text-[11px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
                   Popular
                 </span>

@@ -67,7 +67,7 @@ export default function ManualPlanActivationModal({
         />
       </div>
 
-      <div className={`flex ${stacked ? 'flex-col' : 'flex-col sm:flex-row'} items-stretch sm:items-center gap-4 mt-8`}>
+      <div className="flex flex-col min-[420px]:flex-row items-stretch gap-4 mt-8">
         <button
           onClick={onClose}
           className="flex-1 py-3.5 rounded-full bg-[#F2F2F2] hover:bg-gray-200 text-[#2D2F33] font-medium transition-all"

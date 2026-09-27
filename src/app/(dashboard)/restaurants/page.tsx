@@ -20,12 +20,12 @@ function Dash() {
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(getRestaurants);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(getRestaurants().map((r) => [r.id, true]))
+    Object.fromEntries(getRestaurants().map((r) => [r.id, false]))
   );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const toggle = (id: string) =>
-    setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
+    setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -64,7 +64,7 @@ export default function RestaurantsPage() {
               </div>
 
               {restaurants.map((rest) => {
-                const isOpen = expanded[rest.id] ?? true;
+                const isOpen = expanded[rest.id] ?? false;
                 return (
                   <div key={rest.id} className="border-t border-gray-100 first:border-t-0">
                     {/* Restaurant group row */}

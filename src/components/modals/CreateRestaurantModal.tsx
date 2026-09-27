@@ -1,8 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
-import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, Building2, User, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus } from 'lucide-react';
+import PlanTierPicker from '../PlanTierPicker';
+import {
+  FIGMA_TIERS,
+  FigmaTier,
+  FigmaBillingCycle,
+  cycleTotal,
+} from '../../data/figmaPlans';
 
 interface CreateRestaurantModalProps {
   isOpen: boolean;
@@ -10,107 +17,123 @@ interface CreateRestaurantModalProps {
   onSuccess: (newRestaurant: any) => void;
 }
 
-// Plan tiers + billing cycles taken directly from Figma 🗑️ Dump →
-// "Create new Restaurant 5" (node 1859:336). Prices are the Figma /mo figures;
-// multi-month cycles apply Figma's stated discounts to derive the effective
-// monthly rate (see open questions in report).
-type FigmaTier = 'Basic' | 'Pro' | 'Enterprise';
-type BillingCycle = 'Monthly' | 'Quarterly' | 'SemiAnnually' | 'Yearly';
+// Flow mirrors the Figma frames in order:
+// S1 info (app fields — no frame) → S2 Locations & Branches (1259:651) →
+// S3 plan picker (1859:336) → S4 credentials (1862:546) → S5 done (1309:1206).
+type Step = 'info' | 'branches' | 'plan' | 'credentials' | 'done';
 
-const FIGMA_TIERS: {
-  tier: FigmaTier;
-  monthlyPrice: number;
-  branchLimit: string;
-  features: string[];
-  isPopular?: boolean;
-}[] = [
-  {
-    tier: 'Basic',
-    monthlyPrice: 19,
-    branchLimit: '1 Branch',
-    features: ['Core POS', 'Basic Reporting'],
-  },
-  {
-    tier: 'Pro',
-    monthlyPrice: 63,
-    branchLimit: 'Up to 5 Branches',
-    features: ['Advanced Analytics', 'Online Ordering', 'Inventory'],
-    isPopular: true,
-  },
-  {
-    tier: 'Enterprise',
-    monthlyPrice: 191,
-    branchLimit: 'Unlimited Branches',
-    features: ['Custom API', 'Dedicated Manager', 'Custom Roles'],
-  },
-];
+interface DraftBranch {
+  name: string;
+  cityCountry: string;
+  address: string;
+}
 
-const BILLING_CYCLES: {
-  cycle: BillingCycle;
-  label: string;
-  saveLabel?: string;
-  months: number;
-  discount: number;
-}[] = [
-  { cycle: 'Monthly', label: 'Monthly', months: 1, discount: 0 },
-  { cycle: 'Quarterly', label: 'Quarterly', saveLabel: 'Save 5%', months: 3, discount: 0.05 },
-  { cycle: 'SemiAnnually', label: 'Semi Annually', saveLabel: 'Save 10%', months: 6, discount: 0.1 },
-  { cycle: 'Yearly', label: 'Yearly', saveLabel: 'Save 20%', months: 12, discount: 0.2 },
-];
+const EMPTY_BRANCH: DraftBranch = { name: '', cityCountry: '', address: '' };
+
+function StepIndicator({ step }: { step: Step }) {
+  const order: Step[] = ['info', 'branches', 'plan', 'credentials', 'done'];
+  const idx = order.indexOf(step);
+  // Indicator has 3 dots: info→1, branches→2, plan/credentials/done→3.
+  const activeDot = step === 'info' ? 1 : step === 'branches' ? 2 : 3;
+  return (
+    <div className="flex items-center mt-5 px-1" aria-hidden="true">
+      {[1, 2, 3].map((n, i) => {
+        const filled = n < activeDot || idx >= 3;
+        const current = n === activeDot && idx < 4;
+        return (
+          <React.Fragment key={n}>
+            <span
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                filled || current ? 'bg-[#026F4F] text-white' : 'bg-[#E9E9E9] text-[#989898]'
+              }`}
+            >
+              {filled && !(n === activeDot) ? <Check size={18} /> : n}
+            </span>
+            {i < 2 && (
+              <span
+                className={`flex-1 mx-2 sm:mx-4 border-t-2 border-dashed ${
+                  n < activeDot ? 'border-[#026F4F]/40' : 'border-[#E9E9E9]'
+                }`}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+const pillInput =
+  'w-full h-14 px-6 bg-[#F2F2F2] rounded-full text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 transition-all';
 
 export default function CreateRestaurantModal({
   isOpen,
   onClose,
   onSuccess,
 }: CreateRestaurantModalProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const router = useRouter();
+  const [step, setStep] = useState<Step>('info');
   const [copied, setCopied] = useState(false);
+  const [createdId, setCreatedId] = useState('');
 
-  // Form State
+  // S1 — restaurant & owner
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Japanese & Ramen');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [branchName, setBranchName] = useState('');
-  // Defaults mirror the Figma reference (Pro highlighted, Yearly selected).
+
+  // S2 — branches (Figma 1259:651; "+ Add Branch" appends another block)
+  const [draftBranches, setDraftBranches] = useState<DraftBranch[]>([{ ...EMPTY_BRANCH }]);
+
+  // S3 — plan (Figma 1859:336)
   const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('Yearly');
+  const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
 
-  const activeBilling = BILLING_CYCLES.find((b) => b.cycle === billingCycle)!;
-  const priceFor = (monthlyPrice: number) =>
-    monthlyPrice * (1 - activeBilling.discount);
-  const totalFor = (monthlyPrice: number) =>
-    Math.round(priceFor(monthlyPrice) * activeBilling.months);
-  const formatMonthly = (value: number) =>
-    `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
-
-  // Generated credentials
-  const [credentials, setCredentials] = useState({
-    username: '',
-    temporaryPassword: '',
-  });
+  // S4 — credentials
+  const [credentials, setCredentials] = useState({ username: '', temporaryPassword: '' });
 
   if (!isOpen) return null;
 
-  const handleStep1Submit = (e: React.FormEvent) => {
+  const updateDraft = (i: number, patch: Partial<DraftBranch>) =>
+    setDraftBranches((prev) => prev.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+
+  const handleInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!branchName) setBranchName(`${name} - Main Branch`);
-    setStep(2);
+    setStep('branches');
   };
 
-  const handleStep2Submit = (e: React.FormEvent) => {
+  const handleBranchesSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setStep('plan');
+  };
+
+  const handlePlanDone = () => {
     const tempPass = 'Echo#' + Math.floor(100000 + Math.random() * 900000);
-    setCredentials({
-      username: ownerEmail,
-      temporaryPassword: tempPass,
-    });
+    setCredentials({ username: ownerEmail, temporaryPassword: tempPass });
 
     const chosenTier = FIGMA_TIERS.find((p) => p.tier === selectedTier)!;
-    const newRest = {
-      id: `rest-${Date.now()}`,
+    const id = `rest-${Date.now()}`;
+    const branches = draftBranches.map((b, i) => ({
+      id: `br-${Date.now()}-${i}`,
+      name: b.name || (i === 0 ? `${name} Main Branch` : `${name} Branch ${i + 1}`),
+      address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
+      phone: ownerPhone,
+      managerName: ownerName,
+      managerEmail: ownerEmail,
+      staffCount: 1,
+      ordersToday: 0,
+      revenueToday: 0,
+      status: 'Active' as const,
+      planName: `${chosenTier.tier} Plan`,
+      planExpiry: 'Sep 30, 2027',
+      monthlyFee: 0,
+    }));
+
+    setCreatedId(id);
+    onSuccess({
+      id,
       name,
       logo: '/images/food-41e5d7.png',
       category,
@@ -123,32 +146,14 @@ export default function CreateRestaurantModal({
       planName: `${chosenTier.tier} Plan`,
       planType: 'Restaurant',
       planBilling: billingCycle,
-      planPrice: totalFor(chosenTier.monthlyPrice),
+      planPrice: cycleTotal(chosenTier.monthlyPrice, billingCycle),
       planExpiry: 'Sep 30, 2027',
-      totalBranches: 1,
+      totalBranches: branches.length,
       totalOrders: 0,
       totalRevenue: 0,
-      branches: [
-        {
-          id: `br-${Date.now()}`,
-          name: branchName || `${name} Main Branch`,
-          address,
-          phone: ownerPhone,
-          managerName: ownerName,
-          managerEmail: ownerEmail,
-          staffCount: 1,
-          ordersToday: 0,
-          revenueToday: 0,
-          status: 'Active' as const,
-          planName: `${chosenTier.tier} Plan`,
-          planExpiry: 'Sep 30, 2027',
-          monthlyFee: 0,
-        },
-      ],
-    };
-
-    onSuccess(newRest);
-    setStep(3);
+      branches,
+    });
+    setStep('credentials');
   };
 
   const handleCopyCredentials = () => {
@@ -159,23 +164,25 @@ export default function CreateRestaurantModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const goToRestaurant = () => {
+    onClose();
+    if (createdId) router.push(`/restaurants/${createdId}`);
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        onClick={step !== 3 ? onClose : undefined}
+        onClick={step === 'done' || step === 'credentials' ? undefined : onClose}
         className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
       />
 
-      {/* Modal Container — widened toward the 1119px Figma frame, responsive */}
-      <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-10 animate-in zoom-in-95 duration-200">
-        {/* Header — title + close like Figma, with 3-step indicator below */}
-        <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">
-              {step === 3 ? 'Restaurant Created Successfully!' : 'Create New Restaurant'}
-            </h3>
-            {step !== 3 && (
+      <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-10 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        {step !== 'done' && (
+          <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">
+                {step === 'credentials' ? 'Restaurant Created Successfully!' : 'Create New Restaurant'}
+              </h3>
               <button
                 onClick={onClose}
                 aria-label="Close"
@@ -183,74 +190,23 @@ export default function CreateRestaurantModal({
               >
                 <X size={20} />
               </button>
-            )}
+            </div>
+            <StepIndicator step={step} />
           </div>
+        )}
 
-          {/* 3-step indicator (Figma: circles 1-2-3 joined by dashed lines) */}
-          <div className="flex items-center mt-5 px-1" aria-hidden="true">
-            {[1, 2, 3].map((n, i) => {
-              const done = step > n;
-              const current = step === n;
-              return (
-                <React.Fragment key={n}>
-                  <span
-                    className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                      done || current
-                        ? 'bg-[#026F4F] text-white'
-                        : 'bg-[#E9E9E9] text-[#989898]'
-                    }`}
-                  >
-                    {done ? <Check size={18} /> : n}
-                  </span>
-                  {i < 2 && (
-                    <span
-                      className={`flex-1 mx-2 sm:mx-4 border-t-2 border-dashed ${
-                        step > n + 1 || (step === n + 1)
-                          ? 'border-[#026F4F]/40'
-                          : 'border-[#E9E9E9]'
-                      }`}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-          <p className="text-xs text-[#6E727A] mt-4">
-            {step === 1 && 'Step 1 of 3 — restaurant profile & owner contact (app flow; fields not specified in Figma)'}
-            {step === 2 && 'Step 2 of 3 — billing cycle & subscription plan (per Figma)'}
-            {step === 3 && 'Step 3 of 3 — credentials generated for restaurant administrator'}
-          </p>
-        </div>
-
-        {/* Modal Body */}
         <div className="p-6 sm:p-8">
-          {/* STEP 1: Basic Details */}
-          {step === 1 && (
-            <form onSubmit={handleStep1Submit} className="space-y-5">
+          {/* S1 — restaurant & owner info (app fields; Figma starts at S2) */}
+          {step === 'info' && (
+            <form onSubmit={handleInfoSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Restaurant Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Kyoto Ramen Bar"
-                    className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                  />
+                  <label className="block text-sm text-[#2D2F33]">Restaurant Name *</label>
+                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kyoto Ramen Bar" className={pillInput} />
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Category / Cuisine *
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                  >
+                  <label className="block text-sm text-[#2D2F33]">Category / Cuisine *</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={pillInput}>
                     <option>Japanese & Ramen</option>
                     <option>Italian & Pizzeria</option>
                     <option>American Burger & Grill</option>
@@ -263,67 +219,26 @@ export default function CreateRestaurantModal({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Owner Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    placeholder="e.g. Alexander Wright"
-                    className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                  />
+                  <label className="block text-sm text-[#2D2F33]">Owner Full Name *</label>
+                  <input type="text" required value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Alexander Wright" className={pillInput} />
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Owner Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={ownerEmail}
-                    onChange={(e) => setOwnerEmail(e.target.value)}
-                    placeholder="alexander@domain.com"
-                    className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                  />
+                  <label className="block text-sm text-[#2D2F33]">Owner Email *</label>
+                  <input type="email" required value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder="alexander@domain.com" className={pillInput} />
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={ownerPhone}
-                    onChange={(e) => setOwnerPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                  />
+                  <label className="block text-sm text-[#2D2F33]">Phone Number *</label>
+                  <input type="tel" required value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder="+1 (555) 000-0000" className={pillInput} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Headquarters / Primary Address *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="742 Evergreen Terrace, Springfield, OR"
-                  className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                />
+                <label className="block text-sm text-[#2D2F33]">Headquarters / Primary Address *</label>
+                <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="742 Evergreen Terrace, Springfield, OR" className={pillInput} />
               </div>
 
-              {/* Upload Logo area */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Restaurant Logo / Brand Asset
-                </label>
+                <label className="block text-sm text-[#2D2F33]">Restaurant Logo / Brand Asset</label>
                 <div className="border-2 border-dashed border-gray-200 hover:border-[#026F4F] rounded-2xl p-4 text-center cursor-pointer transition-colors bg-[#F8F9FA]">
                   <Upload size={24} className="mx-auto text-[#989898] mb-1" />
                   <p className="text-xs text-[#2D2F33] font-medium">Click to upload PNG or JPG logo</p>
@@ -331,194 +246,136 @@ export default function CreateRestaurantModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50 transition-colors"
-                >
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onClick={onClose} className="px-6 py-3 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50 transition-colors">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-8 py-3 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <span>Next: Plan & Branch</span>
+                <button type="submit" className="px-8 py-3 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2 transition-all cursor-pointer">
+                  <span>Next Step</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
             </form>
           )}
 
-          {/* STEP 2: Branch & Plan Setup */}
-          {step === 2 && (
-            <form onSubmit={handleStep2Submit} className="space-y-6">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Initial Branch Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="e.g. Kyoto Ramen - Downtown Main"
-                  className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:bg-white focus:outline-none transition-all"
-                />
-              </div>
-
-              {/* Billing Toggle — 4 cycles per Figma (Monthly / Quarterly 5% / Semi Annually 10% / Yearly 20%) */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                    Select Subscription Plan Tier
-                  </label>
-                  <div className="flex flex-wrap items-center bg-[#F2F2F2] p-1 rounded-full text-xs font-bold">
-                    {BILLING_CYCLES.map((b) => (
-                      <button
-                        key={b.cycle}
-                        type="button"
-                        onClick={() => setBillingCycle(b.cycle)}
-                        className={`px-3 sm:px-4 py-2 rounded-full transition-all flex items-center gap-1.5 ${
-                          billingCycle === b.cycle
-                            ? 'bg-white shadow text-[#2D2F33]'
-                            : 'text-[#686868] hover:text-[#2D2F33]'
-                        }`}
-                      >
-                        <span>{b.label}</span>
-                        {b.saveLabel && (
-                          <span className="text-[#158F15] font-semibold">{b.saveLabel}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+          {/* S2 — Locations & Branches (Figma 1259:651) */}
+          {step === 'branches' && (
+            <form onSubmit={handleBranchesSubmit} className="space-y-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="text-xl font-semibold text-[#2D2F33]">Locations & Branches</h4>
+                  <p className="text-[#989898] mt-1">Set up a restaurant in a few steps</p>
                 </div>
-
-                {/* Plan Selection Cards — tiers, prices & features per Figma */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  {FIGMA_TIERS.map((plan) => {
-                    const isSelected = selectedTier === plan.tier;
-                    const monthly = priceFor(plan.monthlyPrice);
-
-                    return (
-                      <div
-                        key={plan.tier}
-                        onClick={() => setSelectedTier(plan.tier)}
-                        className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col ${
-                          isSelected
-                            ? 'border-[#026F4F] bg-white shadow-md'
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
-                        }`}
-                      >
-                        {plan.isPopular && (
-                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#026F4F] text-white text-[11px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
-                            Popular
-                          </span>
-                        )}
-                        {isSelected && (
-                          <span className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow">
-                            <Check size={14} />
-                          </span>
-                        )}
-                        <h4 className="font-bold text-[#2D2F33]">{plan.tier}</h4>
-                        <div className="text-3xl font-bold text-[#2D2F33] mt-1">
-                          {formatMonthly(monthly)}
-                          <span className="text-sm text-[#989898] font-normal"> /mo</span>
-                        </div>
-                        <span className="inline-flex w-fit mt-2 text-[11px] font-semibold text-[#026F4F] bg-[#026F4F]/10 px-2.5 py-1 rounded-full">
-                          {plan.branchLimit}
-                        </span>
-                        <ul className="mt-3 space-y-1.5">
-                          {plan.features.map((feature) => (
-                            <li
-                              key={feature}
-                              className="flex items-center gap-2 text-xs text-[#2D2F33]"
-                            >
-                              <Check size={14} className="text-[#158F15] flex-shrink-0" />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {activeBilling.months > 1 && (
-                          <p className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-[#6E727A]">
-                            Billed ${totalFor(plan.monthlyPrice).toLocaleString()} per{' '}
-                            {activeBilling.label.toLowerCase()} cycle
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
-                  className="px-6 py-3 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  onClick={() => setDraftBranches((prev) => [...prev, { ...EMPTY_BRANCH }])}
+                  className="flex items-center gap-1.5 bg-[#026F4F]/10 hover:bg-[#026F4F]/15 text-[#026F4F] text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex-shrink-0"
                 >
+                  <Plus size={16} />
+                  <span>Add Branch</span>
+                </button>
+              </div>
+
+              {draftBranches.map((b, i) => (
+                <div key={i} className="space-y-5">
+                  {i > 0 && (
+                    <p className="text-sm font-semibold text-[#2D2F33] pt-2 border-t border-gray-100">
+                      Branch {i + 1}
+                    </p>
+                  )}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm text-[#2D2F33]">Branch Name</label>
+                    <input type="text" value={b.name} onChange={(e) => updateDraft(i, { name: e.target.value })} placeholder="Main Branch" className={pillInput} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-sm text-[#2D2F33]">City / Country</label>
+                      <input type="text" value={b.cityCountry} onChange={(e) => updateDraft(i, { cityCountry: e.target.value })} placeholder="e.g. New York, USA" className={pillInput} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-sm text-[#2D2F33]">Full Address</label>
+                      <input type="text" value={b.address} onChange={(e) => updateDraft(i, { address: e.target.value })} placeholder="Street ZIP" className={pillInput} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button type="button" onClick={() => setStep('info')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
                   <ArrowLeft size={16} />
                   <span>Back</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-8 py-3 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <span>Complete & Activate</span>
-                  <Check size={16} />
+                <button type="submit" className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md flex items-center gap-2 transition-all cursor-pointer">
+                  <span>Next Step</span>
+                  <ArrowRight size={18} />
                 </button>
               </div>
             </form>
           )}
 
-          {/* STEP 3: Success Confirmation Modal */}
-          {step === 3 && (
-            <div className="text-center py-4 space-y-6">
-              <div className="w-16 h-16 rounded-full bg-green-100 text-[#026F4F] flex items-center justify-center mx-auto animate-bounce">
-                <Sparkles size={32} />
-              </div>
-
-              <div>
-                <h3 className="text-2xl font-bold text-[#2D2F33]">
-                  Restaurant Created Successfully!
-                </h3>
-                <p className="text-sm text-[#6E727A] mt-1 max-w-md mx-auto">
-                  <strong>{name}</strong> has been registered and provisioned on the ecosystem. Share the login credentials below with the restaurant owner.
-                </p>
-              </div>
-
-              {/* Credentials Box */}
-              <div className="bg-[#F8F9FA] rounded-2xl p-5 border border-gray-200 text-left max-w-md mx-auto space-y-3 font-mono text-xs">
-                <div className="flex justify-between items-center text-gray-500">
-                  <span>Portal:</span>
-                  <span className="text-[#026F4F] font-bold">http://localhost:3000/login</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-700">
-                  <span>Username (Email):</span>
-                  <span className="font-bold">{credentials.username}</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-700">
-                  <span>Temporary Password:</span>
-                  <span className="font-bold bg-white px-2 py-0.5 rounded border border-gray-300">
-                    {credentials.temporaryPassword}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-4 pt-2">
-                <button
-                  onClick={handleCopyCredentials}
-                  className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all"
-                >
-                  {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-                  <span>{copied ? 'Credentials Copied!' : 'Copy Credentials'}</span>
+          {/* S3 — plan picker (Figma 1859:336) */}
+          {step === 'plan' && (
+            <div className="space-y-6">
+              <PlanTierPicker
+                selectedTier={selectedTier}
+                billingCycle={billingCycle}
+                onSelectTier={setSelectedTier}
+                onSelectCycle={setBillingCycle}
+              />
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button type="button" onClick={() => setStep('branches')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
+                  <ArrowLeft size={16} />
+                  <span>Back</span>
                 </button>
+                <button onClick={handlePlanDone} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all cursor-pointer">
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
 
-                <button
-                  onClick={onClose}
-                  className="px-8 py-3 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md transition-all cursor-pointer"
-                >
-                  Done & View Directory
+          {/* S4 — credentials (Figma 1862:546) */}
+          {step === 'credentials' && (
+            <div className="space-y-6">
+              <p className="text-center text-[#989898] max-w-xl mx-auto">
+                We&apos;ve automatically generated login credentials for the restaurant owner. Please copy them securely.
+              </p>
+              <div className="space-y-1.5">
+                <label className="block text-sm text-[#2D2F33]">Email</label>
+                <input type="text" readOnly value={credentials.username} placeholder="e.g. example@gmail.com" className={pillInput} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm text-[#2D2F33]">Temporary Password</label>
+                <input type="text" readOnly value={credentials.temporaryPassword} placeholder="aKOhfyf8qw9r9-" className={pillInput} />
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button onClick={handleCopyCredentials} className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all">
+                  {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                  <span>{copied ? 'Copied!' : 'Copy Credentials'}</span>
+                </button>
+                <button onClick={() => setStep('done')} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all cursor-pointer">
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* S5 — final confirmation (Figma 1309:1206) */}
+          {step === 'done' && (
+            <div className="text-center py-6 space-y-5">
+              <span className="mx-auto w-28 h-28 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow-lg">
+                <BadgeCheck size={56} />
+              </span>
+              <h3 className="text-2xl font-semibold text-[#2D2F33]">Restaurant Created!</h3>
+              <p className="text-[#989898] max-w-md mx-auto">
+                {name} has been successfully set up and added to your platform.
+              </p>
+              <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
+                <button onClick={onClose} className="px-10 py-3.5 rounded-full bg-[#F2F2F2] hover:bg-gray-200 text-[#2D2F33] font-medium transition-all min-w-[180px]">
+                  Close
+                </button>
+                <button onClick={goToRestaurant} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all min-w-[180px]">
+                  View Restaurant
                 </button>
               </div>
             </div>

@@ -27,11 +27,12 @@ export interface Branch {
   id: string;
   name: string;
   address: string;
+  city?: string;
+  country?: string;
   phone: string;
   managerName: string;
   managerEmail: string;
-  staffCount: number;
-  ordersToday: number;
+  staffCount: number;  ordersToday: number;
   revenueToday: number;
   status: 'Active' | 'Inactive';
   planName: string;

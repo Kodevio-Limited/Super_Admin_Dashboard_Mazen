@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus } from 'lucide-react';
 import PlanTierPicker from '../PlanTierPicker';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import {
   FIGMA_TIERS,
   FigmaTier,
@@ -95,6 +96,9 @@ export default function CreateRestaurantModal({
 
   // S4 — credentials
   const [credentials, setCredentials] = useState({ username: '', temporaryPassword: '' });
+
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

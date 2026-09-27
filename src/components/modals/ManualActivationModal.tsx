@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Check, ShieldCheck, Calendar, CreditCard } from 'lucide-react';
 import { Restaurant, SubscriptionPlan } from '../../types/admin';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
 interface ManualActivationModalProps {
   isOpen: boolean;
@@ -23,6 +24,9 @@ export default function ManualActivationModal({
   const [duration, setDuration] = useState('12');
   const [paymentMode, setPaymentMode] = useState('Wire / Bank Transfer');
   const [note, setNote] = useState('Super admin direct enterprise activation');
+
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen || !restaurant) return null;
 

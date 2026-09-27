@@ -14,15 +14,7 @@ import {
   Plus,
   Download,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from 'recharts';
+import SelectableAreaChart from '../../../components/SelectableAreaChart';
 import Topbar from '../../../components/Topbar';
 import ExportLedgerModal from '../../../components/modals/ExportLedgerModal';
 import LogEntryModal, { LedgerEntry } from '../../../components/modals/LogEntryModal';
@@ -137,6 +129,8 @@ export default function RevenueReportsPage() {
   const [ledger, setLedger] = useState<TransactionLedger[]>(mockLedger);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
+  // Bar select/deselect (Owner Reports & Analytics pattern).
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const branchCount = (restaurantName: string) =>
     getRestaurants().find((r) => r.name === restaurantName)?.branches.length;
@@ -211,31 +205,14 @@ export default function RevenueReportsPage() {
           <div className="bg-white rounded-xl p-[22px]">
             <h3 className="font-semibold text-[#2D2F33] text-2xl">Revenue Over Time</h3>
             <div className="h-[273px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={REVENUE_OVER_TIME} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revOverTimeFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#026F4F" stopOpacity={0.12} />
-                      <stop offset="95%" stopColor="#026F4F" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="#E9E9E9" />
-                  <XAxis dataKey="month" tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }} tickLine={false} axisLine={{ stroke: '#E9E9E9' }} />
-                  <YAxis
-                    domain={[0, 30]}
-                    ticks={[0, 10, 20, 30]}
-                    tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val: number) => (val === 0 ? '0' : `${val}K`)}
-                  />
-                  <Tooltip
-                    formatter={(val: number) => [`$${val}K`, 'Revenue']}
-                    contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E9E9E9' }}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#026F4F" strokeWidth={2.5} fill="url(#revOverTimeFill)" dot={false} activeDot={{ r: 4, fill: '#026F4F' }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <SelectableAreaChart
+                data={REVENUE_OVER_TIME.map((d) => ({ label: d.month, value: d.value }))}
+                formatValue={(v) => `$${v}K`}
+                yDomain={[0, 30]}
+                yTicks={[0, 10, 20, 30]}
+                formatTick={(v) => (v === 0 ? '0' : `${v}K`)}
+                gradientId="revOverTimeFill"
+              />
             </div>
           </div>
 
@@ -255,14 +232,23 @@ export default function RevenueReportsPage() {
                     ))}
                   </div>
                   <div className="absolute inset-0 flex items-stretch justify-around px-6">
-                    {REVENUE_BY_PLAN.map((bar) => (
-                      <div key={bar.plan} className="w-16 sm:w-20 relative">
-                        <div
-                          className="absolute bottom-0 left-0 right-0 rounded-t-lg"
-                          style={{ height: `${(bar.value / 30) * 100}%`, backgroundColor: bar.color }}
-                        />
-                      </div>
-                    ))}
+                    {REVENUE_BY_PLAN.map((bar) => {
+                      const dimmed = selectedPlan !== null && selectedPlan !== bar.plan;
+                      return (
+                        <button
+                          key={bar.plan}
+                          type="button"
+                          onClick={() => setSelectedPlan((prev) => (prev === bar.plan ? null : bar.plan))}
+                          title={`${bar.plan}: $${bar.value}K`}
+                          className={`w-16 sm:w-20 relative transition-opacity cursor-pointer ${dimmed ? 'opacity-30' : 'opacity-100'}`}
+                        >
+                          <span
+                            className="absolute bottom-0 left-0 right-0 rounded-t-lg pointer-events-none"
+                            style={{ height: `${(bar.value / 30) * 100}%`, backgroundColor: bar.color }}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="flex justify-around px-6 pt-2">

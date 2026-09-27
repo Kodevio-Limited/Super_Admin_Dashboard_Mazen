@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TriangleAlert } from 'lucide-react';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
 interface ActionNotAllowedModalProps {
   isOpen: boolean;
@@ -17,6 +18,9 @@ export default function ActionNotAllowedModal({
   onCancelRestaurantPlan,
   placement = 'right',
 }: ActionNotAllowedModalProps) {
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleCancelPlan = () => {

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Calendar, Download, X } from 'lucide-react';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
 interface ExportLedgerModalProps {
   isOpen: boolean;
@@ -20,6 +21,9 @@ export default function ExportLedgerModal({
   const [startDate, setStartDate] = useState('2026-08-01');
   const [endDate, setEndDate] = useState('2026-08-30');
   const [downloading, setDownloading] = useState(false);
+
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

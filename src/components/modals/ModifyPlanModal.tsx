@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import PlanTierPicker from '../PlanTierPicker';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import { FigmaTier, FigmaBillingCycle, cycleTotal, FIGMA_TIERS } from '../../data/figmaPlans';
 
 interface ModifyPlanModalProps {
@@ -24,6 +25,9 @@ export default function ModifyPlanModal({
 }: ModifyPlanModalProps) {
   const [selectedTier, setSelectedTier] = useState<FigmaTier>(currentTier);
   const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
+
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useBodyScrollLock, useEscapeToClose } from '../lib/useModalShell';
 
 // Shared slide-in panel shell (overlay + close behavior).
 // All app modals slide in from the right.
@@ -22,6 +23,9 @@ export default function LeftPanel({
   side = 'right',
   tone = 'white',
 }: SlidePanelProps) {
+  // Rendered only while open: lock background scroll, Escape closes.
+  useBodyScrollLock(true);
+  useEscapeToClose(true, onClose);
   const right = side === 'right';
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">

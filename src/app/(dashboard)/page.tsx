@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Topbar from '../../components/Topbar';
 import {
   Store,
@@ -11,15 +11,7 @@ import {
   TrendingUp,
   ChevronDown,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from 'recharts';
+import SelectableAreaChart from '../../components/SelectableAreaChart';
 
 // Source of truth: Figma frame "Dashboard" (1224:1934).
 // Labels, values, order, and visual treatment below mirror that frame.
@@ -115,6 +107,8 @@ function MonthPill() {
 }
 
 export default function SuperAdminDashboardPage() {
+  // Bar select/deselect (Owner Reports & Analytics pattern).
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   return (
     <div className="flex flex-col min-h-screen">
       <Topbar
@@ -168,44 +162,14 @@ export default function SuperAdminDashboardPage() {
               <MonthPill />
             </div>
             <div className="h-[273px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={REVENUE_TRENDS} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revTrendFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#026F4F" stopOpacity={0.12} />
-                      <stop offset="95%" stopColor="#026F4F" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="#E9E9E9" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={{ stroke: '#E9E9E9' }}
-                  />
-                  <YAxis
-                    domain={[0, 30]}
-                    ticks={[0, 10, 20, 30]}
-                    tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val: number) => (val === 0 ? '0' : `${val}K`)}
-                  />
-                  <Tooltip
-                    formatter={(val: number) => [`$${val}K`, 'Revenue']}
-                    contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E9E9E9' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#026F4F"
-                    strokeWidth={2.5}
-                    fill="url(#revTrendFill)"
-                    dot={false}
-                    activeDot={{ r: 4, fill: '#026F4F' }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <SelectableAreaChart
+                data={REVENUE_TRENDS.map((d) => ({ label: d.month, value: d.value }))}
+                formatValue={(v) => `$${v}K`}
+                yDomain={[0, 30]}
+                yTicks={[0, 10, 20, 30]}
+                formatTick={(v) => (v === 0 ? '0' : `${v}K`)}
+                gradientId="revTrendFill"
+              />
             </div>
           </div>
 
@@ -231,17 +195,25 @@ export default function SuperAdminDashboardPage() {
                     ))}
                   </div>
                   <div className="absolute inset-0 flex items-stretch gap-2 px-2">
-                    {ONBOARDING_BARS.map((bar) => (
-                      <div
-                        key={bar.day}
-                        className="flex-1 bg-[rgba(215,237,214,0.4)] rounded-t-[15px] relative"
-                      >
-                        <div
-                          className="absolute bottom-0 left-0 right-0 bg-[#026F4F]/80 rounded-t-[15px]"
-                          style={{ height: `${bar.value}%` }}
-                        />
-                      </div>
-                    ))}
+                    {ONBOARDING_BARS.map((bar) => {
+                      const dimmed = selectedDay !== null && selectedDay !== bar.day;
+                      return (
+                        <button
+                          key={bar.day}
+                          type="button"
+                          onClick={() => setSelectedDay((prev) => (prev === bar.day ? null : bar.day))}
+                          title={`${bar.day}: ${bar.value}`}
+                          className={`flex-1 rounded-t-[15px] relative transition-opacity cursor-pointer ${
+                            dimmed ? 'opacity-30' : 'opacity-100'
+                          } ${selectedDay === bar.day ? 'bg-[rgba(215,237,214,0.7)]' : 'bg-[rgba(215,237,214,0.4)]'}`}
+                        >
+                          <span
+                            className="absolute bottom-0 left-0 right-0 bg-[#026F4F]/80 rounded-t-[15px] pointer-events-none"
+                            style={{ height: `${bar.value}%` }}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="flex gap-2 px-2 pt-2">

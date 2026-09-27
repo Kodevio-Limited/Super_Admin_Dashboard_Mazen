@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
 import PlanTierPicker from '../PlanTierPicker';
+import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import { FigmaTier } from '../../data/figmaPlans';
 
 interface ManualPlanActivationModalProps {
@@ -23,6 +24,9 @@ export default function ManualPlanActivationModal({
 }: ManualPlanActivationModalProps) {
   const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
   const [expiryDate, setExpiryDate] = useState('');
+
+  useBodyScrollLock(isOpen);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

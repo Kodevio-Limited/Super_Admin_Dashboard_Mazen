@@ -2,217 +2,230 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { Plus, Search, ListFilter, Eye, SquarePen } from 'lucide-react';
 import Topbar from '../../../components/Topbar';
-import {
-  Users,
-  Search,
-  Plus,
-  Trash2,
-  Eye,
-  ShieldCheck,
-  Building2,
-  CheckCircle2,
-  Clock,
-  Filter,
-} from 'lucide-react';
-import { mockUsers } from '../../../data/mockData';
-import { AdminUser, UserRole } from '../../../types/admin';
-import UserDetailsDrawer from '../../../components/drawers/UserDetailsDrawer';
-import DeleteUserModal from '../../../components/modals/DeleteUserModal';
+import UserDetailsModal, { rolePill, roleShort } from '../../../components/modals/UserDetailsModal';
+import UserFilterModal, { UserFilters } from '../../../components/modals/UserFilterModal';
+import DeleteUserDialog from '../../../components/modals/DeleteUserDialog';
+import { getUsers, addUser, updateUser, deleteUser } from '../../../data/userStore';
+import { getRestaurants } from '../../../data/restaurantStore';
+import { AdminUser } from '../../../types/admin';
+
+// Source of truth: Figma frame "Users" (1527:3912).
+// Role checkboxes map onto data roles: Admin → Super Admin + Restaurant Owner.
+function roleMatches(role: AdminUser['role'], selected: string[]): boolean {
+  if (selected.length === 0) return true;
+  return selected.some((f) => {
+    switch (f) {
+      case 'Admin':
+        return role === 'Super Admin' || role === 'Restaurant Owner';
+      case 'Manager':
+        return role === 'Branch Manager';
+      case 'Cashier':
+        return role === 'Cashier';
+      case 'Kitchen Staff':
+        return role === 'Kitchen Staff';
+      default:
+        return false;
+    }
+  });
+}
+
+const EMPTY_USER: AdminUser = {
+  id: '',
+  name: '',
+  email: '',
+  phone: '',
+  avatar: '/images/avatar.png',
+  role: 'Branch Manager',
+  status: 'Active',
+  joinedDate: 'Just now',
+  lastActive: 'Just now',
+};
+
+type DetailsState = { user: AdminUser; isNew: boolean; mode: 'view' | 'edit' } | null;
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>(mockUsers);
+  const [users, setUsers] = useState<AdminUser[]>(getUsers());
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState<string>('All');
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [filters, setFilters] = useState<UserFilters>({ roles: [], restaurant: '', activeOnly: false });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [details, setDetails] = useState<DetailsState>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
-  // Modals / Drawers
-  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const restaurants = getRestaurants();
 
-  const roles = [
-    'All',
-    'Restaurant Owner',
-    'Branch Manager',
-    'Cashier',
-    'Kitchen Staff',
-    'Super Admin',
-  ];
-
-  const filteredUsers = users.filter((u) => {
-    const matchesRole = selectedRole === 'All' || u.role === selectedRole;
+  const filtered = users.filter((u) => {
+    const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.restaurantName && u.restaurantName.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    return matchesRole && matchesSearch;
+      q === '' ||
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.phone.toLowerCase().includes(q);
+    const matchesRestaurant = filters.restaurant === '' || u.restaurantName === filters.restaurant;
+    const matchesStatus = !filters.activeOnly || u.status === 'Active';
+    return matchesSearch && roleMatches(u.role, filters.roles) && matchesRestaurant && matchesStatus;
   });
 
-  const handleDeleteConfirm = (userId: string) => {
-    setUsers(users.filter((u) => u.id !== userId));
+  const saveUser = (user: AdminUser) => {
+    if (details?.isNew) addUser(user);
+    else updateUser(user.id, user);
+    setUsers(getUsers());
+    setDetails(null);
   };
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Topbar
-        title="User & Staff Management"
-        subtitle="Control system roles, restaurant staff allocations, and security privileges"
-      />
+      <Topbar title="Users" subtitle="Manage all users and their access" />
 
-      <main className="flex-1 p-8 space-y-8 max-w-[1920px] mx-auto w-full">
-        {/* Top Controls */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs flex flex-wrap items-center justify-between gap-4">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[280px] max-w-md">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#989898]" />
+      <main className="flex-1 p-4 sm:p-6 xl:p-8 space-y-6 max-w-[1920px] mx-auto w-full">
+        <div>
+          <h2 className="text-3xl font-bold text-[#2D2F33]">Users</h2>
+          <p className="text-[#989898] mt-1">Manage all users and their access</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#989898]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search user name, email, or restaurant..."
-              className="w-full h-12 pl-11 pr-4 bg-[#F8F9FA] border border-gray-200 focus:border-[#026F4F] focus:bg-white rounded-full text-sm text-[#2D2F33] focus:outline-none transition-all"
+              placeholder="Search name, email, phone"
+              aria-label="Search users"
+              className="w-full h-14 pl-12 pr-4 bg-white border border-gray-200 rounded-full text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 transition-all"
             />
           </div>
-
-          <div className="text-sm font-semibold text-[#6E727A]">
-            Showing <strong className="text-[#2D2F33]">{filteredUsers.length}</strong> registered users
-          </div>
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            aria-label="Filter users"
+            className="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border border-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors relative"
+          >
+            <ListFilter size={20} />
+            {(filters.roles.length > 0 || filters.restaurant !== '' || filters.activeOnly) && (
+              <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-[#026F4F]" />
+            )}
+          </button>
+          <button
+            onClick={() => setDetails({ user: EMPTY_USER, isNew: true, mode: 'edit' })}
+            className="h-14 px-6 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md flex items-center gap-2 transition-all ml-auto"
+          >
+            <Plus size={20} />
+            <span>Add user</span>
+          </button>
         </div>
 
-        {/* Role Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {roles.map((role) => (
-            <button
-              key={role}
-              onClick={() => setSelectedRole(role)}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
-                selectedRole === role
-                  ? 'bg-[#026F4F] text-white shadow-xs'
-                  : 'bg-white text-[#686868] hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              {role}
-            </button>
-          ))}
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs font-bold text-[#989898] uppercase tracking-wider">
-                  <th className="py-3.5 px-4">User</th>
-                  <th className="py-3.5 px-4">System Role</th>
-                  <th className="py-3.5 px-4">Assigned Entity</th>
-                  <th className="py-3.5 px-4">Contact</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50/70 transition-colors">
-                    <td className="py-4 px-4 font-semibold text-[#2D2F33]">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                          <Image src={user.avatar} alt={user.name} fill className="object-cover" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#2D2F33]">{user.name}</p>
-                          <p className="text-xs text-[#6E727A] flex items-center gap-1">
-                            <Clock size={12} /> {user.lastActive}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="py-4 px-4">
-                      <span className="bg-[#026F4F]/10 text-[#026F4F] text-xs font-bold px-3 py-1 rounded-full">
-                        {user.role}
+            <div className="min-w-[960px]">
+              <div className="grid grid-cols-[minmax(220px,1.6fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_minmax(120px,0.9fr)_minmax(100px,0.7fr)_120px] gap-4 px-6 py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+                <span>User Details</span>
+                <span>Role</span>
+                <span>Restaurant</span>
+                <span>Branch</span>
+                <span>Status</span>
+                <span>Actions</span>
+              </div>
+              {filtered.length === 0 ? (
+                <p className="px-6 py-10 text-center text-sm text-[#989898]">No users match your search or filters.</p>
+              ) : (
+                filtered.map((u) => (
+                  <div
+                    key={u.id}
+                    className="grid grid-cols-[minmax(220px,1.6fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_minmax(120px,0.9fr)_minmax(100px,0.7fr)_120px] gap-4 px-6 py-4 items-center border-t border-gray-100 first:border-t-0"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                        <Image src={u.avatar || '/images/avatar.png'} alt={u.name} fill className="object-cover" />
                       </span>
-                    </td>
-
-                    <td className="py-4 px-4">
-                      <p className="font-semibold text-[#2D2F33]">
-                        {user.restaurantName || 'Platform Headquarters'}
-                      </p>
-                      {user.branchName && (
-                        <p className="text-xs text-[#6E727A]">{user.branchName}</p>
-                      )}
-                    </td>
-
-                    <td className="py-4 px-4">
-                      <p className="font-medium text-[#2D2F33]">{user.email}</p>
-                      <p className="text-xs text-[#6E727A]">{user.phone}</p>
-                    </td>
-
-                    <td className="py-4 px-4">
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-[#2D2F33] text-[15px] truncate">{u.name}</span>
+                        <span className="block text-xs text-[#989898] truncate">{u.email}</span>
+                      </span>
+                    </div>
+                    <span>
+                      <span className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full ${rolePill(u.role)}`}>
+                        {roleShort(u.role)}
+                      </span>
+                    </span>
+                    <span className="text-sm text-[#2D2F33]">{u.restaurantName || '—'}</span>
+                    <span className="text-sm text-[#989898]">{u.branchName || '—'}</span>
+                    <span>
                       <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full ${
-                          user.status === 'Active'
-                            ? 'bg-green-100 text-green-700'
-                            : user.status === 'Suspended'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-700'
+                        className={`text-sm font-medium px-4 py-1.5 rounded-full ${
+                          u.status === 'Active'
+                            ? 'bg-[#D9F5D9] text-[#158F15]'
+                            : u.status === 'Suspended'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-[#686868]'
                         }`}
                       >
-                        {user.status}
+                        {u.status}
                       </span>
-                    </td>
-
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsDetailsDrawerOpen(true);
-                          }}
-                          className="p-2 rounded-xl bg-gray-100 hover:bg-[#026F4F] hover:text-white text-[#686868] transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="p-2 rounded-xl bg-red-50 hover:bg-[#E52B2B] hover:text-white text-[#E52B2B] transition-colors"
-                          title="Delete User"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <button
+                        onClick={() => setDetails({ user: u, isNew: false, mode: 'view' })}
+                        aria-label={`View ${u.name}`}
+                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        onClick={() => setDetails({ user: u, isNew: false, mode: 'edit' })}
+                        aria-label={`Edit ${u.name}`}
+                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                      >
+                        <SquarePen size={18} />
+                      </button>
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </main>
 
-      {/* User Details Drawer */}
-      <UserDetailsDrawer
-        isOpen={isDetailsDrawerOpen}
-        user={selectedUser}
-        onClose={() => setIsDetailsDrawerOpen(false)}
-        onDeleteClick={(u) => {
-          setIsDetailsDrawerOpen(false);
-          setSelectedUser(u);
-          setIsDeleteModalOpen(true);
-        }}
-      />
+      {isFilterOpen && (
+        <UserFilterModal
+          initial={filters}
+          restaurants={restaurants.map((r) => r.name)}
+          onClose={() => setIsFilterOpen(false)}
+          onApply={(f) => {
+            setFilters(f);
+            setIsFilterOpen(false);
+          }}
+        />
+      )}
 
-      {/* Delete User Modal */}
-      <DeleteUserModal
-        isOpen={isDeleteModalOpen}
-        user={selectedUser}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteConfirm}
-      />
+      {details && (
+        <UserDetailsModal
+          key={`${details.user.id || 'new'}-${details.mode}`}
+          user={details.user}
+          isNew={details.isNew}
+          mode={details.mode}
+          restaurants={restaurants.map((r) => ({ name: r.name, branches: r.branches.map((b) => ({ name: b.name })) }))}
+          onClose={() => setDetails(null)}
+          onSave={saveUser}
+          onDeleteRequest={() => {
+            setDeleteTarget(details.user);
+            setDetails(null);
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteUserDialog
+          userName={deleteTarget.name}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            deleteUser(deleteTarget.id);
+            setUsers(getUsers());
+            setDeleteTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }

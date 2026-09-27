@@ -66,7 +66,40 @@ export function formatMonthly(value: number): string {
   return `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
 }
 
-// Home-table plan pill (frame 1856:1628 shows Pro / Basic / Custom pills).
+// Custom plans created through the Subscriptions plan-form frames
+// (1525:3455 restaurant / 1869:1845 branch). Limits left blank/off mean
+// unlimited, per the Figma note.
+export interface CustomPlan {
+  id: string;
+  name: string;
+  kind: 'Restaurant' | 'Branch';
+  prices: { monthly: number; yearly: number; quarterly: number; semi: number };
+  maxTables?: number;
+  maxBranches?: number;
+  maxStaff?: number;
+  maxOrders?: number;
+  modules: string[];
+  isPrivate?: boolean;
+}
+
+export function customPlanBranchLimit(plan: CustomPlan): string {
+  if (plan.maxBranches === undefined) return 'Unlimited Branches';
+  if (plan.maxBranches <= 1) return '1 Branch';
+  return `Up to ${plan.maxBranches} Branches`;
+}
+
+export function customPlanPrice(plan: CustomPlan, cycle: FigmaBillingCycle): number {
+  switch (cycle) {
+    case 'Monthly':
+      return plan.prices.monthly;
+    case 'Yearly':
+      return plan.prices.yearly;
+    case 'Quarterly':
+      return plan.prices.quarterly;
+    case 'SemiAnnually':
+      return plan.prices.semi;
+  }
+}
 // Maps legacy mock plan names onto the Figma pill vocabulary.
 export function planPill(planName: string): {
   label: string;

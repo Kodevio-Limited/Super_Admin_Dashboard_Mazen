@@ -18,6 +18,8 @@ interface PlanTierPickerProps {
   onSelectTier: (tier: FigmaTier) => void;
   onSelectCycle: (cycle: FigmaBillingCycle) => void;
   showPrices?: boolean;
+  // Stacked single column for narrow left slide-in panels.
+  singleColumn?: boolean;
 }
 
 // Shared plan picker matching Figma frames 1859:336 (Create),
@@ -28,6 +30,7 @@ export default function PlanTierPicker({
   onSelectTier,
   onSelectCycle,
   showPrices = true,
+  singleColumn = false,
 }: PlanTierPickerProps) {
   const activeBilling = FIGMA_CYCLES.find((b) => b.cycle === billingCycle)!;
 
@@ -55,7 +58,7 @@ export default function PlanTierPicker({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+      <div className={`grid grid-cols-1 ${singleColumn ? '' : 'md:grid-cols-3'} gap-4 pt-4`}>
         {FIGMA_TIERS.map((plan) => {
           const isSelected = selectedTier === plan.tier;
           const monthly = effectiveMonthly(plan.monthlyPrice, billingCycle);

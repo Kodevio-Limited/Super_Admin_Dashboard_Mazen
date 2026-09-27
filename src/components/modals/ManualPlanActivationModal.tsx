@@ -9,8 +9,8 @@ interface ManualPlanActivationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onActivate: (tier: FigmaTier, expiryDate: string) => void;
-  // Branch flow presents this as a left slide-in panel; restaurant flow is centered.
-  placement?: 'center' | 'left';
+  // Branch flow presents this as a right slide-in panel; restaurant flow is centered.
+  placement?: 'center' | 'right';
 }
 
 // Source of truth: Figma frame "Manual Activation" (1864:870) — expiry date
@@ -19,14 +19,14 @@ export default function ManualPlanActivationModal({
   isOpen,
   onClose,
   onActivate,
-  placement = 'center',
+  placement = 'right',
 }: ManualPlanActivationModalProps) {
   const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
   const [expiryDate, setExpiryDate] = useState('');
 
   if (!isOpen) return null;
 
-  const stacked = placement === 'left';
+  const stacked = placement === 'right';
 
   const body = (
     <>
@@ -84,11 +84,11 @@ export default function ManualPlanActivationModal({
     </>
   );
 
-  if (placement === 'left') {
+  if (placement === 'right') {
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 left-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-r-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-left duration-300">
+        <div className="fixed inset-y-0 right-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

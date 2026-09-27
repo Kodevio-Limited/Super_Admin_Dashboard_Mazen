@@ -449,7 +449,7 @@ export default function RevenueReportsPage() {
 
       <ExportLedgerModal
         isOpen={isExportOpen}
-        placement="left"
+        placement="right"
         onClose={() => setIsExportOpen(false)}
         onExport={(start, end) => downloadCSV(`ecosystem_ledger_${start}_to_${end}.csv`, ledger)}
       />

@@ -7,15 +7,15 @@ interface ActionNotAllowedModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCancelRestaurantPlan?: () => void;
-  // Figma flow presents this as a left slide-in panel; other pages keep center.
-  placement?: 'center' | 'left';
+  // Figma flow presents this as a right slide-in panel; other pages keep center.
+  placement?: 'center' | 'right';
 }
 
 export default function ActionNotAllowedModal({
   isOpen,
   onClose,
   onCancelRestaurantPlan,
-  placement = 'center',
+  placement = 'right',
 }: ActionNotAllowedModalProps) {
   if (!isOpen) return null;
 
@@ -68,11 +68,11 @@ export default function ActionNotAllowedModal({
     </>
   );
 
-  if (placement === 'left') {
+  if (placement === 'right') {
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 left-0 w-[min(480px,94vw)] bg-white shadow-2xl rounded-r-3xl overflow-y-auto p-8 text-center animate-in slide-in-from-left duration-300">
+        <div className="fixed inset-y-0 right-0 w-[min(480px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-8 text-center animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

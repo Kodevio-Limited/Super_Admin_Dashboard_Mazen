@@ -2,12 +2,14 @@
 
 import React from 'react';
 
-// Shared left slide-in panel shell (overlay + close behavior).
-interface LeftPanelProps {
+// Shared slide-in panel shell (overlay + close behavior).
+// All app modals slide in from the right.
+interface SlidePanelProps {
   onClose: () => void;
   children: React.ReactNode;
   labelledBy?: string;
   widthClass?: string;
+  side?: 'left' | 'right';
 }
 
 export default function LeftPanel({
@@ -15,7 +17,9 @@ export default function LeftPanel({
   children,
   labelledBy,
   widthClass = 'w-[min(560px,94vw)]',
-}: LeftPanelProps) {
+  side = 'right',
+}: SlidePanelProps) {
+  const right = side === 'right';
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div
@@ -26,7 +30,7 @@ export default function LeftPanel({
         role="dialog"
         aria-modal="true"
         aria-label={labelledBy}
-        className={`fixed inset-y-0 left-0 ${widthClass} bg-white shadow-2xl rounded-r-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-left duration-300`}
+        className={`fixed inset-y-0 ${right ? 'right-0 rounded-l-3xl animate-in slide-in-from-right' : 'left-0 rounded-r-3xl animate-in slide-in-from-left'} ${widthClass} bg-white shadow-2xl overflow-y-auto p-6 sm:p-8 duration-300`}
       >
         {children}
       </div>

@@ -503,7 +503,7 @@ function BranchDetailsPanel({
       {/* Modify Plan as left slide-in (blocked → Action Not Allowed instead) */}
       <ModifyPlanModal
         isOpen={isModifyOpen}
-        placement="left"
+        placement="right"
         onClose={() => setIsModifyOpen(false)}
         onActivate={(tier: FigmaTier, billing: FigmaBillingCycle, price: number) => {
           onPatchBranch({
@@ -519,7 +519,7 @@ function BranchDetailsPanel({
       {/* Action Not Allowed as left slide-in (Figma 1867:1718) */}
       <ActionNotAllowedModal
         isOpen={isBlockedOpen}
-        placement="left"
+        placement="right"
         onClose={() => setIsBlockedOpen(false)}
         onCancelRestaurantPlan={() => {
           onPatchRestaurant({ planName: 'No Active Plan', planPrice: 0, planExpiry: '—' });
@@ -531,7 +531,7 @@ function BranchDetailsPanel({
       {/* Manual Activation as left slide-in (Figma 1864:870) */}
       <ManualPlanActivationModal
         isOpen={isManualOpen}
-        placement="left"
+        placement="right"
         onClose={() => setIsManualOpen(false)}
         onActivate={(tier: FigmaTier, expiryDate: string) => {
           const monthly = FIGMA_TIERS.find((t) => t.tier === tier)!.monthlyPrice;

@@ -14,7 +14,6 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  ShieldCheck,
   Menu,
   X,
 } from 'lucide-react';
@@ -51,19 +50,14 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
       <div className="space-y-8">
         {/* Brand row with collapse toggle (Owner dashboard pattern) */}
         <div className="flex items-center justify-between gap-2 px-3 py-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative w-[130px] h-[38px] flex-shrink-0">
-              <Image
-                src="/images/logo-69e842.png"
-                alt="Restaurant Ecosystem"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <span className="bg-[#026F4F]/10 text-[#026F4F] text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-              Admin
-            </span>
+          <div className="relative w-[130px] h-[38px] flex-shrink-0">
+            <Image
+              src="/images/logo-69e842.png"
+              alt="Restaurant Ecosystem"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           <button
             onClick={inOverlay ? () => setMobileOpen(false) : onToggleCollapsed}
@@ -106,28 +100,8 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
         </nav>
       </div>
 
-      {/* Bottom Profile & Logout */}
-      <div className="space-y-4 pt-6 border-t border-gray-100">
-        <div className="flex items-center gap-3.5 p-2 bg-[#F8F9FA] rounded-2xl border border-gray-100">
-          <div className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
-            <Image
-              src="/images/avatar.png"
-              alt="Elena Rostova"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-[#2D2F33] truncate">
-              Elena Rostova
-            </h4>
-            <p className="text-xs text-[#026F4F] font-medium flex items-center gap-1">
-              <ShieldCheck size={13} />
-              <span>Super Admin</span>
-            </p>
-          </div>
-        </div>
-
+      {/* Bottom Logout */}
+      <div className="pt-6 border-t border-gray-100">
         <Link
           href="/login"
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#E52B2B] hover:bg-red-50 transition-colors w-full"

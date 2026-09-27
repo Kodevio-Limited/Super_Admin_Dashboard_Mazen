@@ -33,12 +33,11 @@ export default function ManualActivationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      <div onClick={onClose} className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity" />
-
-      {/* Modal - 1119px x 684px from Figma #1867:1403 */}
-      <div className="relative bg-white w-full max-w-2xl rounded-[21px] p-8 md:p-10 shadow-2xl border border-gray-100 z-10 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
+      <div className="fixed inset-y-0 right-0 w-[min(600px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto animate-in slide-in-from-right duration-300">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#026F4F]/10 text-[#026F4F] flex items-center justify-center">
               <ShieldCheck size={22} />
@@ -139,6 +138,7 @@ export default function ManualActivationModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

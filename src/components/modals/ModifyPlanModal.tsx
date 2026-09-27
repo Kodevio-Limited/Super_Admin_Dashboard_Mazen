@@ -10,8 +10,8 @@ interface ModifyPlanModalProps {
   currentTier?: FigmaTier;
   onClose: () => void;
   onActivate: (tier: FigmaTier, billing: FigmaBillingCycle, price: number) => void;
-  // Branch flow presents this as a left slide-in panel; restaurant flow is centered.
-  placement?: 'center' | 'left';
+  // Branch flow presents this as a right slide-in panel; restaurant flow is centered.
+  placement?: 'center' | 'right';
 }
 
 // Source of truth: Figma frames "Modify Plan" (1692:72598, also 1867:1403).
@@ -20,7 +20,7 @@ export default function ModifyPlanModal({
   currentTier = 'Pro',
   onClose,
   onActivate,
-  placement = 'center',
+  placement = 'right',
 }: ModifyPlanModalProps) {
   const [selectedTier, setSelectedTier] = useState<FigmaTier>(currentTier);
   const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
@@ -28,7 +28,7 @@ export default function ModifyPlanModal({
   if (!isOpen) return null;
 
   const monthly = FIGMA_TIERS.find((t) => t.tier === selectedTier)!.monthlyPrice;
-  const stacked = placement === 'left';
+  const stacked = placement === 'right';
 
   const body = (
     <>
@@ -70,11 +70,11 @@ export default function ModifyPlanModal({
     </>
   );
 
-  if (placement === 'left') {
+  if (placement === 'right') {
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 left-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-r-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-left duration-300">
+        <div className="fixed inset-y-0 right-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

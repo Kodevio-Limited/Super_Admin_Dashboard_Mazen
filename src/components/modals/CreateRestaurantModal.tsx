@@ -170,13 +170,13 @@ export default function CreateRestaurantModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-hidden">
       <div
         onClick={step === 'done' || step === 'credentials' ? undefined : onClose}
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+        className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in"
       />
 
-      <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-10 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-y-0 right-0 w-[min(680px,96vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto animate-in slide-in-from-right duration-300">
         {step !== 'done' && (
           <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ export default function CreateRestaurantModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-sm text-[#2D2F33]">Owner Full Name *</label>
                   <input type="text" required value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Alexander Wright" className={pillInput} />
@@ -321,6 +321,7 @@ export default function CreateRestaurantModal({
                 billingCycle={billingCycle}
                 onSelectTier={setSelectedTier}
                 onSelectCycle={setBillingCycle}
+                singleColumn
               />
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('branches')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">

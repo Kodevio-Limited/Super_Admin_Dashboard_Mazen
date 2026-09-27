@@ -65,7 +65,7 @@ export default function RestaurantsPage() {
                 <span>Status</span>
                 <span>Date of Sub</span>
                 <span>Sub Until</span>
-                <span>Actions</span>
+                <span className="sticky right-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)]">Actions</span>
               </div>
 
               {restaurants.map((rest) => {
@@ -97,13 +97,15 @@ export default function RestaurantsPage() {
                       <Dash />
                       <Dash />
                       <Dash />
-                      <button
-                        onClick={() => setFlow({ restaurantId: rest.id })}
-                        aria-label={`Edit ${rest.name}`}
-                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                      >
-                        <SquarePen size={18} />
-                      </button>
+                      <span className="sticky right-0 bg-white shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
+                        <button
+                          onClick={() => setFlow({ restaurantId: rest.id })}
+                          aria-label={`Edit ${rest.name}`}
+                          className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                        >
+                          <SquarePen size={18} />
+                        </button>
+                      </span>
                     </div>
 
                     {/* Branch rows */}
@@ -141,18 +143,20 @@ export default function RestaurantsPage() {
                               </span>
                               <span className="text-sm text-[#2D2F33]">{rest.joinedDate}</span>
                               <span className="text-sm text-[#2D2F33]">{rest.planExpiry}</span>
-                              <button
-                                onClick={() =>
-                                  setFlow({
-                                    restaurantId: rest.id,
-                                    branch: { id: branch.id, tab: 'Overview' },
-                                  })
-                                }
-                                aria-label={`Edit ${branch.name}`}
-                                className="w-11 h-11 rounded-lg bg-[#E9E9E9] hover:bg-gray-300 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                              >
-                                <SquarePen size={18} />
-                              </button>
+                              <span className="sticky right-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
+                                <button
+                                  onClick={() =>
+                                    setFlow({
+                                      restaurantId: rest.id,
+                                      branch: { id: branch.id, tab: 'Overview' },
+                                    })
+                                  }
+                                  aria-label={`Edit ${branch.name}`}
+                                  className="w-11 h-11 rounded-lg bg-[#E9E9E9] hover:bg-gray-300 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                                >
+                                  <SquarePen size={18} />
+                                </button>
+                              </span>
                             </div>
                           );
                         })}

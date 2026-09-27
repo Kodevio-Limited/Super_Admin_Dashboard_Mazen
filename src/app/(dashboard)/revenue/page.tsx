@@ -233,7 +233,9 @@ export default function RevenueReportsPage() {
                   </div>
                   <div className="absolute inset-0 flex items-stretch justify-around px-6">
                     {REVENUE_BY_PLAN.map((bar) => {
-                      const dimmed = selectedPlan !== null && selectedPlan !== bar.plan;
+                      const selected = selectedPlan === bar.plan;
+                      const dimmed = selectedPlan !== null && !selected;
+                      const heightPct = (bar.value / 30) * 100;
                       return (
                         <button
                           key={bar.plan}
@@ -244,8 +246,16 @@ export default function RevenueReportsPage() {
                         >
                           <span
                             className="absolute bottom-0 left-0 right-0 rounded-t-lg pointer-events-none"
-                            style={{ height: `${(bar.value / 30) * 100}%`, backgroundColor: bar.color }}
+                            style={{ height: `${heightPct}%`, backgroundColor: bar.color }}
                           />
+                          {selected && (
+                            <span
+                              className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#2D2F33] text-white text-xs font-semibold px-2.5 py-1.5 shadow-lg pointer-events-none"
+                              style={{ bottom: `calc(${heightPct}% + 10px)` }}
+                            >
+                              ${bar.value}K
+                            </span>
+                          )}
                         </button>
                       );
                     })}

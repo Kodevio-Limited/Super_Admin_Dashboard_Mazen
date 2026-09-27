@@ -196,7 +196,8 @@ export default function SuperAdminDashboardPage() {
                   </div>
                   <div className="absolute inset-0 flex items-stretch gap-2 px-2">
                     {ONBOARDING_BARS.map((bar) => {
-                      const dimmed = selectedDay !== null && selectedDay !== bar.day;
+                      const selected = selectedDay === bar.day;
+                      const dimmed = selectedDay !== null && !selected;
                       return (
                         <button
                           key={bar.day}
@@ -205,12 +206,20 @@ export default function SuperAdminDashboardPage() {
                           title={`${bar.day}: ${bar.value}`}
                           className={`flex-1 rounded-t-[15px] relative transition-opacity cursor-pointer ${
                             dimmed ? 'opacity-30' : 'opacity-100'
-                          } ${selectedDay === bar.day ? 'bg-[rgba(215,237,214,0.7)]' : 'bg-[rgba(215,237,214,0.4)]'}`}
+                          } ${selected ? 'bg-[rgba(215,237,214,0.7)]' : 'bg-[rgba(215,237,214,0.4)]'}`}
                         >
                           <span
                             className="absolute bottom-0 left-0 right-0 bg-[#026F4F]/80 rounded-t-[15px] pointer-events-none"
                             style={{ height: `${bar.value}%` }}
                           />
+                          {selected && (
+                            <span
+                              className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#2D2F33] text-white text-xs font-semibold px-2.5 py-1.5 shadow-lg pointer-events-none"
+                              style={{ bottom: `calc(${bar.value}% + 10px)` }}
+                            >
+                              {bar.value}
+                            </span>
+                          )}
                         </button>
                       );
                     })}

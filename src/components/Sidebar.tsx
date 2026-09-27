@@ -115,10 +115,10 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
 
   return (
     <>
-      {/* Mobile hamburger button */}
+      {/* Mobile hamburger button (tablet uses the icon rail instead) */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center border border-gray-100"
+        className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center border border-gray-100"
       >
         <Menu size={20} className="text-[#2D2F33]" />
       </button>

@@ -53,7 +53,9 @@ export interface Restaurant {
   joinedDate: string;
   planName: string;
   planType: 'Restaurant' | 'Branch';
-  planBilling: 'Monthly' | 'Yearly';
+  // Billing cycles per Figma Dump → "Create new Restaurant 5" (node 1859:336):
+  // Monthly / Quarterly (Save 5%) / Semi Annually (Save 10%) / Yearly (Save 20%).
+  planBilling: 'Monthly' | 'Quarterly' | 'SemiAnnually' | 'Yearly';
   planPrice: number;
   planExpiry: string;
   totalBranches: number;

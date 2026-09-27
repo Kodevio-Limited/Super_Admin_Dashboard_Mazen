@@ -3,13 +3,60 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, Building2, User, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
-import { mockPlans } from '../../data/mockData';
 
 interface CreateRestaurantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newRestaurant: any) => void;
 }
+
+// Plan tiers + billing cycles taken directly from Figma 🗑️ Dump →
+// "Create new Restaurant 5" (node 1859:336). Prices are the Figma /mo figures;
+// multi-month cycles apply Figma's stated discounts to derive the effective
+// monthly rate (see open questions in report).
+type FigmaTier = 'Basic' | 'Pro' | 'Enterprise';
+type BillingCycle = 'Monthly' | 'Quarterly' | 'SemiAnnually' | 'Yearly';
+
+const FIGMA_TIERS: {
+  tier: FigmaTier;
+  monthlyPrice: number;
+  branchLimit: string;
+  features: string[];
+  isPopular?: boolean;
+}[] = [
+  {
+    tier: 'Basic',
+    monthlyPrice: 19,
+    branchLimit: '1 Branch',
+    features: ['Core POS', 'Basic Reporting'],
+  },
+  {
+    tier: 'Pro',
+    monthlyPrice: 63,
+    branchLimit: 'Up to 5 Branches',
+    features: ['Advanced Analytics', 'Online Ordering', 'Inventory'],
+    isPopular: true,
+  },
+  {
+    tier: 'Enterprise',
+    monthlyPrice: 191,
+    branchLimit: 'Unlimited Branches',
+    features: ['Custom API', 'Dedicated Manager', 'Custom Roles'],
+  },
+];
+
+const BILLING_CYCLES: {
+  cycle: BillingCycle;
+  label: string;
+  saveLabel?: string;
+  months: number;
+  discount: number;
+}[] = [
+  { cycle: 'Monthly', label: 'Monthly', months: 1, discount: 0 },
+  { cycle: 'Quarterly', label: 'Quarterly', saveLabel: 'Save 5%', months: 3, discount: 0.05 },
+  { cycle: 'SemiAnnually', label: 'Semi Annually', saveLabel: 'Save 10%', months: 6, discount: 0.1 },
+  { cycle: 'Yearly', label: 'Yearly', saveLabel: 'Save 20%', months: 12, discount: 0.2 },
+];
 
 export default function CreateRestaurantModal({
   isOpen,
@@ -27,8 +74,17 @@ export default function CreateRestaurantModal({
   const [ownerPhone, setOwnerPhone] = useState('');
   const [address, setAddress] = useState('');
   const [branchName, setBranchName] = useState('');
-  const [selectedPlanId, setSelectedPlanId] = useState(mockPlans[1].id); // Pro default
-  const [billingCycle, setBillingCycle] = useState<'Monthly' | 'Yearly'>('Monthly');
+  // Defaults mirror the Figma reference (Pro highlighted, Yearly selected).
+  const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('Yearly');
+
+  const activeBilling = BILLING_CYCLES.find((b) => b.cycle === billingCycle)!;
+  const priceFor = (monthlyPrice: number) =>
+    monthlyPrice * (1 - activeBilling.discount);
+  const totalFor = (monthlyPrice: number) =>
+    Math.round(priceFor(monthlyPrice) * activeBilling.months);
+  const formatMonthly = (value: number) =>
+    `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
 
   // Generated credentials
   const [credentials, setCredentials] = useState({
@@ -52,7 +108,7 @@ export default function CreateRestaurantModal({
       temporaryPassword: tempPass,
     });
 
-    const chosenPlan = mockPlans.find((p) => p.id === selectedPlanId) || mockPlans[0];
+    const chosenTier = FIGMA_TIERS.find((p) => p.tier === selectedTier)!;
     const newRest = {
       id: `rest-${Date.now()}`,
       name,
@@ -64,10 +120,10 @@ export default function CreateRestaurantModal({
       address,
       status: 'Active' as const,
       joinedDate: 'Just now',
-      planName: chosenPlan.name,
-      planType: chosenPlan.type,
+      planName: `${chosenTier.tier} Plan`,
+      planType: 'Restaurant',
       planBilling: billingCycle,
-      planPrice: billingCycle === 'Monthly' ? chosenPlan.priceMonthly : chosenPlan.priceYearly,
+      planPrice: totalFor(chosenTier.monthlyPrice),
       planExpiry: 'Sep 30, 2027',
       totalBranches: 1,
       totalOrders: 0,
@@ -84,7 +140,7 @@ export default function CreateRestaurantModal({
           ordersToday: 0,
           revenueToday: 0,
           status: 'Active' as const,
-          planName: chosenPlan.name,
+          planName: `${chosenTier.tier} Plan`,
           planExpiry: 'Sep 30, 2027',
           monthlyFee: 0,
         },
@@ -111,40 +167,63 @@ export default function CreateRestaurantModal({
         className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
       />
 
-      {/* Modal Container */}
-      <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-10 animate-in zoom-in-95 duration-200">
-        {/* Step Indicator Header */}
-        <div className="bg-[#F8F9FA] px-8 py-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-[#026F4F] text-white flex items-center justify-center text-sm font-bold">
-              {step}
-            </span>
-            <div>
-              <h3 className="font-bold text-[#2D2F33] text-lg">
-                {step === 1 && 'Create New Restaurant (Step 1/2)'}
-                {step === 2 && 'Branch & Subscription Setup (Step 2/2)'}
-                {step === 3 && 'Restaurant Created Successfully!'}
-              </h3>
-              <p className="text-xs text-[#6E727A]">
-                {step === 1 && 'Enter restaurant profile & owner contact'}
-                {step === 2 && 'Assign initial branch & select SaaS plan'}
-                {step === 3 && 'Credentials generated for restaurant administrator'}
-              </p>
-            </div>
+      {/* Modal Container — widened toward the 1119px Figma frame, responsive */}
+      <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-10 animate-in zoom-in-95 duration-200">
+        {/* Header — title + close like Figma, with 3-step indicator below */}
+        <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">
+              {step === 3 ? 'Restaurant Created Successfully!' : 'Create New Restaurant'}
+            </h3>
+            {step !== 3 && (
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
 
-          {step !== 3 && (
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-[#686868] transition-colors"
-            >
-              <X size={18} />
-            </button>
-          )}
+          {/* 3-step indicator (Figma: circles 1-2-3 joined by dashed lines) */}
+          <div className="flex items-center mt-5 px-1" aria-hidden="true">
+            {[1, 2, 3].map((n, i) => {
+              const done = step > n;
+              const current = step === n;
+              return (
+                <React.Fragment key={n}>
+                  <span
+                    className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                      done || current
+                        ? 'bg-[#026F4F] text-white'
+                        : 'bg-[#E9E9E9] text-[#989898]'
+                    }`}
+                  >
+                    {done ? <Check size={18} /> : n}
+                  </span>
+                  {i < 2 && (
+                    <span
+                      className={`flex-1 mx-2 sm:mx-4 border-t-2 border-dashed ${
+                        step > n + 1 || (step === n + 1)
+                          ? 'border-[#026F4F]/40'
+                          : 'border-[#E9E9E9]'
+                      }`}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <p className="text-xs text-[#6E727A] mt-4">
+            {step === 1 && 'Step 1 of 3 — restaurant profile & owner contact (app flow; fields not specified in Figma)'}
+            {step === 2 && 'Step 2 of 3 — billing cycle & subscription plan (per Figma)'}
+            {step === 3 && 'Step 3 of 3 — credentials generated for restaurant administrator'}
+          </p>
         </div>
 
         {/* Modal Body */}
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           {/* STEP 1: Basic Details */}
           {step === 1 && (
             <form onSubmit={handleStep1Submit} className="space-y-5">
@@ -288,66 +367,84 @@ export default function CreateRestaurantModal({
                 />
               </div>
 
-              {/* Billing Toggle */}
+              {/* Billing Toggle — 4 cycles per Figma (Monthly / Quarterly 5% / Semi Annually 10% / Yearly 20%) */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
                     Select Subscription Plan Tier
                   </label>
-                  <div className="flex items-center bg-[#F2F2F2] p-1 rounded-full text-xs font-bold">
-                    <button
-                      type="button"
-                      onClick={() => setBillingCycle('Monthly')}
-                      className={`px-3 py-1 rounded-full transition-all ${
-                        billingCycle === 'Monthly' ? 'bg-white shadow-xs text-[#026F4F]' : 'text-[#686868]'
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBillingCycle('Yearly')}
-                      className={`px-3 py-1 rounded-full transition-all ${
-                        billingCycle === 'Yearly' ? 'bg-white shadow-xs text-[#026F4F]' : 'text-[#686868]'
-                      }`}
-                    >
-                      Yearly (Save 20%)
-                    </button>
+                  <div className="flex flex-wrap items-center bg-[#F2F2F2] p-1 rounded-full text-xs font-bold">
+                    {BILLING_CYCLES.map((b) => (
+                      <button
+                        key={b.cycle}
+                        type="button"
+                        onClick={() => setBillingCycle(b.cycle)}
+                        className={`px-3 sm:px-4 py-2 rounded-full transition-all flex items-center gap-1.5 ${
+                          billingCycle === b.cycle
+                            ? 'bg-white shadow text-[#2D2F33]'
+                            : 'text-[#686868] hover:text-[#2D2F33]'
+                        }`}
+                      >
+                        <span>{b.label}</span>
+                        {b.saveLabel && (
+                          <span className="text-[#158F15] font-semibold">{b.saveLabel}</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Plan Selection Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {mockPlans.filter((p) => p.type === 'Restaurant').map((plan) => {
-                    const isSelected = selectedPlanId === plan.id;
-                    const price = billingCycle === 'Monthly' ? plan.priceMonthly : plan.priceYearly;
+                {/* Plan Selection Cards — tiers, prices & features per Figma */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  {FIGMA_TIERS.map((plan) => {
+                    const isSelected = selectedTier === plan.tier;
+                    const monthly = priceFor(plan.monthlyPrice);
 
                     return (
                       <div
-                        key={plan.id}
-                        onClick={() => setSelectedPlanId(plan.id)}
-                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                        key={plan.tier}
+                        onClick={() => setSelectedTier(plan.tier)}
+                        className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col ${
                           isSelected
-                            ? 'border-[#026F4F] bg-green-50/30 shadow-sm'
+                            ? 'border-[#026F4F] bg-white shadow-md'
                             : 'border-gray-200 hover:border-gray-300 bg-white'
                         }`}
                       >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-bold text-[#2D2F33] text-sm">{plan.name}</h4>
-                            {isSelected && <Check size={16} className="text-[#026F4F]" />}
-                          </div>
-                          <div className="text-xl font-bold text-[#026F4F] my-1">
-                            ${price}
-                            <span className="text-xs text-[#989898] font-normal">
-                              /{billingCycle === 'Monthly' ? 'mo' : 'yr'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-[#6E727A] line-clamp-2">{plan.description}</p>
+                        {plan.isPopular && (
+                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#026F4F] text-white text-[11px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
+                            Popular
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow">
+                            <Check size={14} />
+                          </span>
+                        )}
+                        <h4 className="font-bold text-[#2D2F33]">{plan.tier}</h4>
+                        <div className="text-3xl font-bold text-[#2D2F33] mt-1">
+                          {formatMonthly(monthly)}
+                          <span className="text-sm text-[#989898] font-normal"> /mo</span>
                         </div>
-                        <div className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-[#026F4F] font-semibold">
-                          Max {plan.maxBranches} Branches • {plan.maxStaff} Staff
-                        </div>
+                        <span className="inline-flex w-fit mt-2 text-[11px] font-semibold text-[#026F4F] bg-[#026F4F]/10 px-2.5 py-1 rounded-full">
+                          {plan.branchLimit}
+                        </span>
+                        <ul className="mt-3 space-y-1.5">
+                          {plan.features.map((feature) => (
+                            <li
+                              key={feature}
+                              className="flex items-center gap-2 text-xs text-[#2D2F33]"
+                            >
+                              <Check size={14} className="text-[#158F15] flex-shrink-0" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {activeBilling.months > 1 && (
+                          <p className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-[#6E727A]">
+                            Billed ${totalFor(plan.monthlyPrice).toLocaleString()} per{' '}
+                            {activeBilling.label.toLowerCase()} cycle
+                          </p>
+                        )}
                       </div>
                     );
                   })}

@@ -25,6 +25,9 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import { mockLedger, mockRevenueMetrics } from '../../../data/mockData';
 import { TransactionLedger } from '../../../types/admin';
@@ -49,6 +52,16 @@ export default function RevenueReportsPage() {
   const totalProcessed = ledger
     .filter((l) => l.status === 'Paid')
     .reduce((sum, l) => sum + l.amount, 0);
+
+  // Figma 🗑️ Dump → Frame 2147225781 (node 1507:1219): "Payment Methods /
+  // Breakdown by transaction type." with POS / Cash / Online (App) segments.
+  // The design specifies no values or data source, so this uses a clearly
+  // labeled sample distribution until the real mapping is confirmed.
+  const paymentMethodBreakdown = [
+    { name: 'POS', value: 45, color: '#7B7BF5' },
+    { name: 'Cash', value: 25, color: '#FF9E8A' },
+    { name: 'Online (App)', value: 30, color: '#45B7C7' },
+  ];
 
   const handleExportCSV = (start: string, end: string) => {
     const csvContent =
@@ -153,6 +166,56 @@ export default function RevenueReportsPage() {
                 <Area type="monotone" dataKey="subscriptionRevenue" stroke="#158F15" strokeWidth={3} fillOpacity={1} fill="url(#colorSub)" name="SaaS Revenue" />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Payment Methods Breakdown (per Figma Dump → node 1507:1219) */}
+        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs space-y-6">
+          <div>
+            <h3 className="text-xl font-bold text-[#2D2F33]">Payment Methods</h3>
+            <p className="text-xs text-[#6E727A]">Breakdown by transaction type.</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-8">
+            <div className="h-[240px] w-full sm:w-1/2">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentMethodBreakdown}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="62%"
+                    outerRadius="90%"
+                    paddingAngle={2}
+                    strokeWidth={0}
+                  >
+                    {paymentMethodBreakdown.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val: number) => [`${val}%`, '']}
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E9E9E9' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="w-full sm:w-1/2 space-y-3">
+              {paymentMethodBreakdown.map((entry) => (
+                <div key={entry.name} className="flex items-center gap-3 text-sm">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="font-semibold text-[#2D2F33]">{entry.name}</span>
+                  <span className="ml-auto text-xs text-[#6E727A]">{entry.value}%</span>
+                </div>
+              ))}
+              <p className="text-[11px] text-[#989898] pt-2">
+                Sample distribution — Figma specifies the segments but no values or data source.
+              </p>
+            </div>
           </div>
         </div>
 

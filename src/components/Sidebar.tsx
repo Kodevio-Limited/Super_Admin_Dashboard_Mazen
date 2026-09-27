@@ -10,6 +10,8 @@ import {
   Users,
   BarChart3,
   CreditCard,
+  Activity,
+  Settings,
   LogOut,
   ChevronRight,
   ShieldCheck,
@@ -17,16 +19,25 @@ import {
   X,
 } from 'lucide-react';
 
-export default function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}
+
+export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Order + labels follow Figma 🗑️ Dump → Group 14 "SIDEBAR NAVIGATION" (node 1230:3225):
+  // Dashboard, Restaurants, Subscriptions, Users, Revenue & Reports, System Monitoring, Settings.
   const navItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Restaurants', href: '/restaurants', icon: Store },
+    { name: 'Subscriptions', href: '/subscriptions', icon: CreditCard },
     { name: 'Users', href: '/users', icon: Users },
     { name: 'Revenue & Reports', href: '/revenue', icon: BarChart3 },
-    { name: 'Subscription', href: '/subscriptions', icon: CreditCard },
+    { name: 'System Monitoring', href: '/system', icon: Activity },
+    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => {
@@ -34,24 +45,34 @@ export default function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  const sidebarContent = (
+  const sidebarContent = (inOverlay = false) => (
     <>
       {/* Brand & Navigation */}
       <div className="space-y-8">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="relative w-[130px] h-[38px]">
-            <Image
-              src="/images/logo-69e842.png"
-              alt="Restaurant Ecosystem"
-              fill
-              className="object-contain"
-              priority
-            />
+        {/* Brand row with collapse toggle (Owner dashboard pattern) */}
+        <div className="flex items-center justify-between gap-2 px-3 py-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative w-[130px] h-[38px] flex-shrink-0">
+              <Image
+                src="/images/logo-69e842.png"
+                alt="Restaurant Ecosystem"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <span className="bg-[#026F4F]/10 text-[#026F4F] text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+              Admin
+            </span>
           </div>
-          <span className="bg-[#026F4F]/10 text-[#026F4F] text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-            Admin
-          </span>
+          <button
+            onClick={inOverlay ? () => setMobileOpen(false) : onToggleCollapsed}
+            aria-label={inOverlay ? 'Close menu' : 'Collapse sidebar'}
+            title={inOverlay ? 'Close menu' : 'Collapse sidebar'}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#989898] transition-colors hover:bg-[#F2F2F2] hover:text-[#2D2F33]"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Navigation Links */}
@@ -128,52 +149,66 @@ export default function Sidebar() {
         <Menu size={20} className="text-[#2D2F33]" />
       </button>
 
-      {/* Desktop sidebar (≥1024px: full, 768-1024px: collapsed icon-only) */}
-      <aside className="hidden lg:flex w-[280px] bg-white h-screen flex-col justify-between p-6 border-r border-gray-100/80 sticky top-0 z-40 flex-shrink-0">
-        {sidebarContent}
-      </aside>
-
-      {/* Tablet sidebar (768-1024px: icon-only collapsed) */}
-      <aside className="hidden md:flex lg:hidden w-[76px] bg-white h-screen flex-col items-center justify-between py-6 border-r border-gray-100/80 sticky top-0 z-40 flex-shrink-0">
-        {/* Logo only */}
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative w-[40px] h-[40px]">
-            <Image
-              src="/images/logo-69e842.png"
-              alt="Logo"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-          <nav className="flex flex-col items-center gap-3">
-            {navItems.map((item) => {
-              const active = isActive(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  title={item.name}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                    active
-                      ? 'bg-[#026F4F] text-white shadow-md'
-                      : 'text-[#989898] hover:bg-gray-50 hover:text-[#2D2F33]'
-                  }`}
-                >
-                  <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-        <Link
-          href="/login"
-          title="Sign Out"
-          className="w-12 h-12 rounded-2xl flex items-center justify-center text-[#E52B2B] hover:bg-red-50 transition-colors"
-        >
-          <LogOut size={20} />
-        </Link>
+      {/* Collapsible sidebar (tablet + desktop) — full labels or icon rail */}
+      <aside
+        className={`hidden md:flex bg-white h-screen flex-col justify-between sticky top-0 z-40 flex-shrink-0 border-r border-gray-100/80 transition-all duration-300 ${
+          collapsed ? 'w-[76px] items-center py-6' : 'w-[280px] p-6'
+        }`}
+      >
+        {collapsed ? (
+          <>
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative w-[40px] h-[40px]">
+                <Image
+                  src="/images/logo-69e842.png"
+                  alt="Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <button
+                onClick={onToggleCollapsed}
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#989898] transition-colors hover:bg-[#F2F2F2] hover:text-[#2D2F33]"
+              >
+                <Menu size={18} />
+              </button>
+              <nav className="flex flex-col items-center gap-3 mt-4">
+                {navItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      title={item.name}
+                      aria-label={item.name}
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                        active
+                          ? 'bg-[#026F4F] text-white shadow-md'
+                          : 'text-[#989898] hover:bg-gray-50 hover:text-[#2D2F33]'
+                      }`}
+                    >
+                      <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+            <Link
+              href="/login"
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-[#E52B2B] hover:bg-red-50 transition-colors"
+            >
+              <LogOut size={20} />
+            </Link>
+          </>
+        ) : (
+          sidebarContent()
+        )}
       </aside>
 
       {/* Mobile overlay sidebar */}
@@ -187,7 +222,7 @@ export default function Sidebar() {
             >
               <X size={16} />
             </button>
-            {sidebarContent}
+            {sidebarContent(true)}
           </aside>
         </div>
       )}

@@ -31,13 +31,12 @@ export default function SystemMonitoringPage() {
             return (
               <div
                 key={section.name}
-                className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs opacity-80"
+                className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs"
               >
                 <div className="w-11 h-11 rounded-2xl bg-[#F2F2F2] flex items-center justify-center text-[#989898]">
                   <Icon size={20} />
                 </div>
                 <h3 className="font-bold text-[#2D2F33] mt-4">{section.name}</h3>
-                <p className="text-xs text-[#989898] mt-1">No design specified</p>
               </div>
             );
           })}

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Topbar from '../../../components/Topbar';
-import { Activity, Server, HeartPulse, Database, Users, Gauge } from 'lucide-react';
+import { Server, HeartPulse, Database, Users, Gauge } from 'lucide-react';
 
 // Figma 🗑️ Dump → Group 14 "SIDEBAR NAVIGATION" (node 1230:3225) specifies a
 // "7. System Monitoring" section with the sub-sections below. No visual design
@@ -25,18 +25,6 @@ export default function SystemMonitoringPage() {
       />
 
       <main className="flex-1 p-8 space-y-8 max-w-[1920px] mx-auto w-full">
-        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex items-start gap-3">
-          <Activity size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-bold text-[#2D2F33] text-sm">Design pending</h3>
-            <p className="text-xs text-[#6E727A] mt-1">
-              Figma only defines this section&apos;s information architecture (Dump → Group 14).
-              No cards, charts, or status components are specified yet — this placeholder
-              holds the navigation slot until designs are provided.
-            </p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {SECTIONS.map((section) => {
             const Icon = section.icon;

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TriangleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
 interface ActionNotAllowedModalProps {
@@ -20,6 +21,7 @@ export default function ActionNotAllowedModal({
 }: ActionNotAllowedModalProps) {
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
+  const t = useTranslations('sa.planModals');
 
   if (!isOpen) return null;
 
@@ -44,13 +46,11 @@ export default function ActionNotAllowedModal({
       </div>
 
       <h3 className="text-[28px] font-bold text-[#2D2F33] tracking-tight mb-4">
-        Action Not Allowed
+        {t('notAllowedTitle')}
       </h3>
 
-      <p className="text-[16px] text-[#989898] leading-relaxed max-w-sm mx-auto mb-8">
-        You are attempting to modify plan for this branch, but you currently have an active Restaurant Plan covering all branches.
-        <br /><br />
-        To manage individual branch plans, you must first cancel your overarching Restaurant Plan.
+      <p className="text-[16px] text-[#989898] leading-relaxed max-w-sm mx-auto mb-8 whitespace-pre-line">
+        {t('notAllowedDesc')}
       </p>
 
       <div className="flex flex-col gap-3">
@@ -59,14 +59,14 @@ export default function ActionNotAllowedModal({
           onClick={handleCancelPlan}
           className="w-full h-[59px] rounded-full bg-[#E52B2B] hover:bg-[#c92020] text-white font-semibold text-[17px] shadow-[0px_4px_16px_rgba(229,43,43,0.25)] transition-all cursor-pointer"
         >
-          Cancel Restaurant Plan
+          {t('cancelRestaurantPlan')}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="w-full h-[59px] rounded-full bg-[#E9E9E9] hover:bg-gray-300 text-[#2D2F33] font-semibold text-[17px] transition-colors"
         >
-          Keep Current Plan
+          {t('keepCurrentPlan')}
         </button>
       </div>
     </>
@@ -76,7 +76,7 @@ export default function ActionNotAllowedModal({
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 right-0 w-[min(480px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-8 text-center animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-y-0 end-0 w-[min(480px,94vw)] bg-white shadow-2xl rounded-s-3xl overflow-y-auto p-8 text-center animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

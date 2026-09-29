@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowLeft, Calendar } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import LeftPanel from '../LeftPanel';
 
 export interface LedgerEntry {
@@ -25,6 +26,7 @@ export default function LogEntryModal({
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('2026-08-16');
   const [category, setCategory] = useState('');
+  const t = useTranslations('sa.logEntry');
 
   const reset = () => {
     setType('Revenue');
@@ -38,36 +40,36 @@ export default function LogEntryModal({
     'w-full h-14 px-6 bg-[#F2F2F2] rounded-full text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 transition-all';
 
   return (
-    <LeftPanel onClose={onClose} labelledBy="Log New Entry">
+    <LeftPanel onClose={onClose} labelledBy={t('title')}>
       <div className="grid grid-cols-[auto_1fr] items-center gap-3">
         <button
           onClick={onClose}
-          aria-label="Back"
+          aria-label={t('back')}
           className="w-12 h-12 rounded-full bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#2D2F33] transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="rtl:scale-x-[-1]" />
         </button>
-        <h3 className="text-2xl font-semibold text-[#2D2F33] text-center pr-12">Log New Entry</h3>
+        <h3 className="text-2xl font-semibold text-[#2D2F33] text-center pe-12">{t('title')}</h3>
       </div>
 
       <div className="mt-6 space-y-5">
         <div className="space-y-1.5">
-          <label className="block text-sm text-[#2D2F33]">Entry Type</label>
+          <label className="block text-sm text-[#2D2F33]">{t('entryType')}</label>
           <div className="grid grid-cols-2 gap-3">
-            {(['Revenue', 'Expense'] as const).map((t) => {
-              const selected = type === t;
+             {(['Revenue', 'Expense'] as const).map((opt) => {
+              const selected = type === opt;
               return (
                 <button
-                  key={t}
+                  key={opt}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => setType(opt)}
                   className={`h-14 rounded-full text-[15px] font-medium transition-all ${
                     selected
                       ? 'bg-[#026F4F]/10 border-2 border-[#026F4F] text-[#026F4F]'
                       : 'bg-[#F2F2F2] text-[#989898] hover:text-[#2D2F33]'
                   }`}
                 >
-                  {t}
+                  {opt === 'Revenue' ? t('revenue') : t('expense')}
                 </button>
               );
             })}
@@ -75,19 +77,19 @@ export default function LogEntryModal({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm text-[#2D2F33]">Description</label>
+          <label className="block text-sm text-[#2D2F33]">{t('description')}</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Cloud Hosting, The Rustic Spoke"
+            placeholder={t('descPlaceholder')}
             className={pillInput}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Amount ($)</label>
+            <label className="block text-sm text-[#2D2F33]">{t('amount')}</label>
             <input
               type="number"
               min={0}
@@ -98,26 +100,26 @@ export default function LogEntryModal({
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Date</label>
+            <label className="block text-sm text-[#2D2F33]">{t('date')}</label>
             <div className="relative">
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className={`${pillInput} pr-12 text-[#686868]`}
+                className={`${pillInput} pe-12 text-[#686868]`}
               />
-              <Calendar size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-[#686868] pointer-events-none" />
+              <Calendar size={18} className="absolute end-5 top-1/2 -translate-y-1/2 text-[#686868] pointer-events-none" />
             </div>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm text-[#2D2F33]">Category / Plan</label>
+          <label className="block text-sm text-[#2D2F33]">{t('category')}</label>
           <input
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="e.g. Software, Custom"
+            placeholder={t('catPlaceholder')}
             className={pillInput}
           />
         </div>
@@ -128,13 +130,13 @@ export default function LogEntryModal({
           onClick={reset}
           className="py-3.5 rounded-full border border-gray-300 text-[#2D2F33] font-medium hover:bg-gray-100 transition-all"
         >
-          Reset
+          {t('reset')}
         </button>
         <button
           onClick={() => onSave({ type, description, amount, date, category })}
           className="py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
         >
-          Save Entry
+          {t('saveEntry')}
         </button>
       </div>
     </LeftPanel>

@@ -1,21 +1,10 @@
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Super Admin Dashboard | Restaurant Ecosystem SaaS",
-  description: "Enterprise multi-chain restaurant management, subscription licensing, and revenue intelligence",
-};
-
+// Root layout — minimal wrapper. Real layout lives in [locale]/layout.tsx.
+// This file exists only to satisfy Next.js App Router's requirement for a
+// root layout. The [locale] layout below it sets <html lang dir>.
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body className="antialiased bg-[#F2F2F2] text-[#2D2F33] min-h-screen">
-        {children}
-      </body>
-    </html>
-  );
+}) {
+  return children;
 }

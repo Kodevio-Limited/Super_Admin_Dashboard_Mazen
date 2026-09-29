@@ -1,22 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/routing';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Store,
-  Users,
-  BarChart3,
-  CreditCard,
-  Activity,
-  Settings,
-  LogOut,
-  ChevronRight,
-  Menu,
-  X,
+  LayoutDashboard, Store, Users, BarChart3,
+  CreditCard, Activity, Settings, LogOut,
+  ChevronRight, Menu, X,
 } from 'lucide-react';
+import { LanguageToggle } from './LanguageToggle';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -25,18 +18,18 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations('sa.nav');
+  const tm = useTranslations('sa.modals');
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Order + labels follow Figma 🗑️ Dump → Group 14 "SIDEBAR NAVIGATION" (node 1230:3225):
-  // Dashboard, Restaurants, Subscriptions, Users, Revenue & Reports, System Monitoring, Settings.
   const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Restaurants', href: '/restaurants', icon: Store },
-    { name: 'Subscriptions', href: '/subscriptions', icon: CreditCard },
-    { name: 'Users', href: '/users', icon: Users },
-    { name: 'Revenue & Reports', href: '/revenue', icon: BarChart3 },
-    { name: 'System Monitoring', href: '/system', icon: Activity },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: t('dashboard'),        href: '/',            icon: LayoutDashboard },
+    { name: t('restaurants'),      href: '/restaurants', icon: Store },
+    { name: t('subscriptions'),    href: '/subscriptions',icon: CreditCard },
+    { name: t('users'),            href: '/users',       icon: Users },
+    { name: t('revenueReports'),   href: '/revenue',     icon: BarChart3 },
+    { name: t('systemMonitoring'), href: '/system',      icon: Activity },
+    { name: t('settings'),         href: '/settings',    icon: Settings },
   ];
 
   const isActive = (href: string) => {
@@ -61,8 +54,8 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
           </div>
           <button
             onClick={inOverlay ? () => setMobileOpen(false) : onToggleCollapsed}
-            aria-label={inOverlay ? 'Close menu' : 'Collapse sidebar'}
-            title={inOverlay ? 'Close menu' : 'Collapse sidebar'}
+            aria-label={inOverlay ? tm('closeMenu') : tm('collapseSidebar')}
+            title={inOverlay ? tm('closeMenu') : tm('collapseSidebar')}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#989898] transition-colors hover:bg-[#F2F2F2] hover:text-[#2D2F33]"
           >
             <X size={18} />
@@ -93,7 +86,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
                   />
                   <span>{item.name}</span>
                 </div>
-                {active && <ChevronRight size={16} className="text-white/80" />}
+                {active && <ChevronRight size={16} className="text-white/80 rtl:scale-x-[-1]" />}
               </Link>
             );
           })}
@@ -107,8 +100,11 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#E52B2B] hover:bg-red-50 transition-colors w-full"
         >
           <LogOut size={18} />
-          <span>Sign Out</span>
+          <span>{t('signOut')}</span>
         </Link>
+        <div className="mt-3">
+          <LanguageToggle />
+        </div>
       </div>
     </>
   );
@@ -118,14 +114,14 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
       {/* Mobile hamburger button (tablet uses the icon rail instead) */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center border border-gray-100"
+        className="md:hidden fixed top-4 start-4 z-50 w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center border border-gray-100"
       >
         <Menu size={20} className="text-[#2D2F33]" />
       </button>
 
       {/* Collapsible sidebar (tablet + desktop) — full labels or icon rail */}
       <aside
-        className={`hidden md:flex bg-white h-screen flex-col justify-between sticky top-0 z-40 flex-shrink-0 border-r border-gray-100/80 transition-all duration-300 ${
+        className={`hidden md:flex bg-white h-screen flex-col justify-between sticky top-0 z-40 flex-shrink-0 border-e border-gray-100/80 transition-all duration-300 ${
           collapsed ? 'w-[76px] items-center py-6' : 'w-[280px] p-6'
         }`}
       >
@@ -143,8 +139,8 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
               </div>
               <button
                 onClick={onToggleCollapsed}
-                aria-label="Expand sidebar"
-                title="Expand sidebar"
+                aria-label={tm('expandSidebar')}
+                title={tm('expandSidebar')}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[#989898] transition-colors hover:bg-[#F2F2F2] hover:text-[#2D2F33]"
               >
                 <Menu size={18} />
@@ -173,8 +169,8 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
             </div>
             <Link
               href="/login"
-              title="Sign Out"
-              aria-label="Sign Out"
+              title={t('signOut')}
+              aria-label={t('signOut')}
               className="w-12 h-12 rounded-2xl flex items-center justify-center text-[#E52B2B] hover:bg-red-50 transition-colors"
             >
               <LogOut size={20} />
@@ -189,10 +185,10 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-[280px] bg-white flex flex-col justify-between p-6 shadow-2xl">
+          <aside className="absolute start-0 top-0 bottom-0 w-[280px] bg-white flex flex-col justify-between p-6 shadow-2xl">
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+              className="absolute top-4 end-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
             >
               <X size={16} />
             </button>

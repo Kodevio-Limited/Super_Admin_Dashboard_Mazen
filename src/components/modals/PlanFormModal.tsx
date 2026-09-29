@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import LeftPanel from '../LeftPanel';
-import { CustomPlan } from '../../data/figmaPlans';
+import { CustomPlan, moduleArLabel } from '../../data/figmaPlans';
 
 interface PlanFormModalProps {
   isOpen: boolean;
@@ -74,6 +75,9 @@ function LimitRow({
 }
 
 export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }: PlanFormModalProps) {
+  const t = useTranslations('sa.planForm');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   const [planName, setPlanName] = useState(editing?.name || '');
   const [monthly, setMonthly] = useState(editing ? String(editing.prices.monthly) : '');
   const [yearly, setYearly] = useState(editing ? String(editing.prices.yearly) : '');
@@ -93,6 +97,7 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
   const [isPrivate, setIsPrivate] = useState(editing?.isPrivate || false);
 
   if (!isOpen) return null;
+  const kindLabel = kind === 'Restaurant' ? t('kindRestaurant') : t('kindBranch');
 
   const num = (v: string) => {
     const n = parseFloat(v);
@@ -126,102 +131,102 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
     setModules((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
 
   return (
-    <LeftPanel onClose={onClose} labelledBy={kind === 'Restaurant' ? 'Create New Restaurant Plan' : 'Create New Branch Plan'}>
+    <LeftPanel onClose={onClose} labelledBy={kind === 'Restaurant' ? t('createRestaurantTitle') : t('createBranchTitle')}>
       <div className="grid grid-cols-[auto_1fr] items-center gap-3">
         <button
           onClick={onClose}
-          aria-label="Back"
+          aria-label={t('back')}
           className="w-12 h-12 rounded-full bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#2D2F33] transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="rtl:scale-x-[-1]" />
         </button>
-        <div className="text-center pr-12">
+        <div className="text-center pe-12">
           <h3 className="text-2xl font-semibold text-[#2D2F33]">
-            {editing ? 'Edit' : 'Create New'}
+            {editing ? t('edit') : t('createNew')}
             <br />
-            {kind} Plan
+            {kindLabel} {t('planWord')}
           </h3>
-          <p className="text-sm text-[#989898] mt-1">Configure pricing and feature limits</p>
+          <p className="text-sm text-[#989898] mt-1">{t('tagline')}</p>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-5 mt-6 space-y-4 border border-gray-100">
-        <h4 className="text-lg font-semibold text-[#2D2F33]">Basic Info</h4>
+        <h4 className="text-lg font-semibold text-[#2D2F33]">{t('basicInfo')}</h4>
         <div className="space-y-1.5">
-          <label className="block text-sm text-[#2D2F33]">Plan Name</label>
+          <label className="block text-sm text-[#2D2F33]">{t('planName')}</label>
           <input
             type="text"
             value={planName}
             onChange={(e) => setPlanName(e.target.value)}
-            placeholder="e.g. Premium"
+            placeholder={t('planNamePlaceholder')}
             className={pillInput}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Monthly Price ($)</label>
-            <input type="number" min={0} value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder="$ 0.00" className={pillInput} />
+            <label className="block text-sm text-[#2D2F33]">{t('monthlyPrice')}</label>
+            <input type="number" min={0} value={monthly} onChange={(e) => setMonthly(e.target.value)} placeholder={t('pricePlaceholder')} className={pillInput} />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Yearly Price ($)</label>
-            <input type="number" min={0} value={yearly} onChange={(e) => setYearly(e.target.value)} placeholder="$ 0.00" className={pillInput} />
+            <label className="block text-sm text-[#2D2F33]">{t('yearlyPrice')}</label>
+            <input type="number" min={0} value={yearly} onChange={(e) => setYearly(e.target.value)} placeholder={t('pricePlaceholder')} className={pillInput} />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Quaterly Price ($)</label>
-            <input type="number" min={0} value={quarterly} onChange={(e) => setQuarterly(e.target.value)} placeholder="$ 0.00" className={pillInput} />
+            <label className="block text-sm text-[#2D2F33]">{t('quarterlyPrice')}</label>
+            <input type="number" min={0} value={quarterly} onChange={(e) => setQuarterly(e.target.value)} placeholder={t('pricePlaceholder')} className={pillInput} />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-sm text-[#2D2F33]">Semi Annually Price ($)</label>
-            <input type="number" min={0} value={semi} onChange={(e) => setSemi(e.target.value)} placeholder="$ 0.00" className={pillInput} />
+            <label className="block text-sm text-[#2D2F33]">{t('semiPrice')}</label>
+            <input type="number" min={0} value={semi} onChange={(e) => setSemi(e.target.value)} placeholder={t('pricePlaceholder')} className={pillInput} />
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-5 mt-4 space-y-5 border border-gray-100">
-        <h4 className="text-lg font-semibold text-[#2D2F33]">Usage Limits</h4>
-        <LimitRow label="Max Tables" enabled={tablesOn} value={maxTables} placeholder="e.g. 15" onToggle={setTablesOn} onChange={setMaxTables} />
+        <h4 className="text-lg font-semibold text-[#2D2F33]">{t('usageLimits')}</h4>
+        <LimitRow label={t('maxTables')} enabled={tablesOn} value={maxTables} placeholder={t('limitPlaceholder')} onToggle={setTablesOn} onChange={setMaxTables} />
         {kind === 'Restaurant' && (
-          <LimitRow label="Max Branches" enabled={branchesOn} value={maxBranches} placeholder="e.g. 15" onToggle={setBranchesOn} onChange={setMaxBranches} />
+          <LimitRow label={t('maxBranches')} enabled={branchesOn} value={maxBranches} placeholder={t('limitPlaceholder')} onToggle={setBranchesOn} onChange={setMaxBranches} />
         )}
-        <LimitRow label="Max Staff Accounts" enabled={staffOn} value={maxStaff} placeholder="e.g. 15" onToggle={setStaffOn} onChange={setMaxStaff} />
-        <LimitRow label="Max Monthly Orders" enabled={ordersOn} value={maxOrders} placeholder="e.g. 1000" onToggle={setOrdersOn} onChange={setMaxOrders} />
+        <LimitRow label={t('maxStaff')} enabled={staffOn} value={maxStaff} placeholder={t('limitPlaceholder')} onToggle={setStaffOn} onChange={setMaxStaff} />
+        <LimitRow label={t('maxOrders')} enabled={ordersOn} value={maxOrders} placeholder={t('limitPlaceholderBig')} onToggle={setOrdersOn} onChange={setMaxOrders} />
         <p className="text-xs text-[#989898]">
-          <span className="text-[#E52B2B]">*</span>Leave blank for unlimited
+          {t('unlimitedHint')}
         </p>
       </div>
 
       <div className="bg-white rounded-2xl p-5 mt-4 space-y-4 border border-gray-100">
-        <h4 className="text-lg font-semibold text-[#2D2F33]">Module Access</h4>
+        <h4 className="text-lg font-semibold text-[#2D2F33]">{t('moduleAccess')}</h4>
         {MODULES.map((m) => {
           const on = modules.includes(m);
           return (
             <div key={m} className="flex items-center justify-between">
-              <span className="text-sm text-[#2D2F33]">{m}</span>
+              <span className="text-sm text-[#2D2F33]">{moduleArLabel(m, locale)}</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={on}
-                aria-label={m}
+                aria-label={moduleArLabel(m, locale)}
                 onClick={() => toggleModule(m)}
                 className={`w-12 h-7 rounded-full p-1 transition-colors ${on ? 'bg-[#2563EB]' : 'bg-gray-300'}`}
               >
-                <span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0'}`} />
+                <span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
           );
         })}
         {kind === 'Branch' && (
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[15px] font-medium text-[#2D2F33]">Private Plan</span>
+            <span className="text-[15px] font-medium text-[#2D2F33]">{t('privatePlan')}</span>
             <button
               type="button"
               role="switch"
               aria-checked={isPrivate}
-              aria-label="Private Plan"
+              aria-label={t('privatePlan')}
               onClick={() => setIsPrivate(!isPrivate)}
               className={`w-14 h-8 rounded-full p-1 transition-colors ${isPrivate ? 'bg-[#22C55E]' : 'bg-gray-300'}`}
             >
-              <span className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-0'}`} />
+              <span className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${isPrivate ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'}`} />
             </button>
           </div>
         )}
@@ -232,13 +237,13 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
           onClick={onClose}
           className="py-3.5 rounded-full border border-gray-300 text-[#2D2F33] font-medium hover:bg-gray-100 transition-all"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           onClick={handleSave}
           className="py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
         >
-          Save Plan
+          {t('savePlan')}
         </button>
       </div>
     </LeftPanel>

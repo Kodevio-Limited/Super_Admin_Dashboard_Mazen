@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { pickAr } from '../lib/localize';
 import {
   FIGMA_TIERS,
   FIGMA_CYCLES,
@@ -33,6 +35,9 @@ export default function PlanTierPicker({
   singleColumn = false,
 }: PlanTierPickerProps) {
   const activeBilling = FIGMA_CYCLES.find((b) => b.cycle === billingCycle)!;
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const tSub = useTranslations('sa.subscriptions');
 
   return (
     <div className="space-y-3">
@@ -51,9 +56,9 @@ export default function PlanTierPicker({
                   : 'text-[#686868] hover:text-[#2D2F33]'
               }`}
             >
-              <span>{b.label}</span>
-              {b.saveLabel && (
-                <span className="text-[#158F15] font-medium">{b.saveLabel}</span>
+              <span>{isAr ? (b.label_ar ?? b.label) : b.label}</span>
+              {(isAr ? (b.saveLabel_ar ?? b.saveLabel) : b.saveLabel) && (
+                <span className="text-[#158F15] font-medium">{isAr ? (b.saveLabel_ar ?? b.saveLabel) : b.saveLabel}</span>
               )}
             </button>
           ))}
@@ -78,28 +83,28 @@ export default function PlanTierPicker({
             >
               {plan.isPopular && showPrices && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#026F4F] text-white text-[11px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
-                  Popular
+                  {tSub('popular')}
                 </span>
               )}
               {isSelected && (
-                <span className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow">
+                <span className="absolute -top-2.5 -end-2.5 w-6 h-6 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow">
                   <Check size={14} />
                 </span>
               )}
-              <h4 className="font-bold text-[#2D2F33] text-lg">{plan.tier}</h4>
+              <h4 className="font-bold text-[#2D2F33] text-lg">{pickAr(locale, plan.tier, plan.tier_ar)}</h4>
               {showPrices && (
                 <div className="text-[32px] leading-tight font-bold text-[#2D2F33] mt-1">
-                  {formatMonthly(monthly)}
-                  <span className="text-sm text-[#989898] font-normal"> /mo</span>
+                  <bdi dir="ltr">{formatMonthly(monthly)}</bdi>
+                  <span className="text-sm text-[#989898] font-normal"> {isAr ? '/شهر' : '/mo'}</span>
                 </div>
               )}
               <span
                 className={`inline-flex w-fit ${showPrices ? 'mt-2' : 'mt-3'} text-xs font-medium text-[#026F4F] bg-[#026F4F]/10 px-2.5 py-1 rounded-full`}
               >
-                {plan.branchLimit}
+                {pickAr(locale, plan.branchLimit, plan.branchLimit_ar)}
               </span>
               <ul className="mt-3 space-y-1.5">
-                {plan.features.map((feature) => (
+                {(isAr ? (plan.features_ar ?? plan.features) : plan.features).map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm text-[#2D2F33]">
                     <Check size={15} className="text-[#158F15] flex-shrink-0" />
                     <span>{feature}</span>
@@ -108,8 +113,12 @@ export default function PlanTierPicker({
               </ul>
               {showPrices && activeBilling.months > 1 && (
                 <p className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-[#6E727A]">
-                  Billed ${cycleTotal(plan.monthlyPrice, billingCycle).toLocaleString()} per{' '}
-                  {activeBilling.label.toLowerCase()} cycle
+                  <bdi>
+                  {tSub('billedPerCycle', {
+                    total: '$' + cycleTotal(plan.monthlyPrice, billingCycle).toLocaleString(),
+                    cycle: tSub(`billingCycle.${billingCycle.toLowerCase()}` as any),
+                  })}
+                  </bdi>
                 </p>
               )}
             </div>

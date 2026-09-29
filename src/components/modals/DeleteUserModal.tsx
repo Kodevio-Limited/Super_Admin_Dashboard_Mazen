@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { AdminUser } from '../../types/admin';
 
 interface DeleteUserModalProps {
@@ -17,6 +18,8 @@ export default function DeleteUserModal({
   onClose,
   onConfirm,
 }: DeleteUserModalProps) {
+  const t = useTranslations('sa.users');
+  const tc = useTranslations('common.actions');
   if (!isOpen || !user) return null;
 
   return (
@@ -33,12 +36,12 @@ export default function DeleteUserModal({
 
         {/* Title */}
         <h3 className="text-[28px] font-bold text-[#2D2F33] tracking-tight mb-2">
-          Delete User
+          {t('deleteDialogTitle')}
         </h3>
 
         {/* Description */}
         <p className="text-[17px] text-[#989898] leading-relaxed max-w-sm mx-auto mb-8">
-          You are about to delete user <strong className="text-[#2D2F33]">{user.name}</strong>. This action cannot be undone.
+          {t('deleteDialogMessage', { name: '\u2066' + user.name + '\u2069' })}
         </p>
 
         {/* Action Buttons */}
@@ -48,7 +51,7 @@ export default function DeleteUserModal({
             onClick={onClose}
             className="flex-1 h-[59px] rounded-full bg-[#E9E9E9] hover:bg-gray-300 text-[#2D2F33] font-semibold text-[17px] transition-colors"
           >
-            Cancel
+            {tc('cancel')}
           </button>
           <button
             type="button"
@@ -58,7 +61,7 @@ export default function DeleteUserModal({
             }}
             className="flex-1 h-[59px] rounded-full bg-[#E52B2B] hover:bg-[#c92020] text-white font-semibold text-[17px] shadow-[0px_4px_16px_rgba(229,43,43,0.3)] transition-all cursor-pointer"
           >
-            Delete User
+            {t('deleteUser')}
           </button>
         </div>
       </div>

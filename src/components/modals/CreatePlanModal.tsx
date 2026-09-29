@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Check, Sparkles } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { SubscriptionPlan } from '../../types/admin';
 
 interface CreatePlanModalProps {
@@ -29,6 +30,8 @@ export default function CreatePlanModal({
     'Live Analytics & Sales Reports',
   ]);
   const [newFeatureText, setNewFeatureText] = useState('');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
 
   if (!isOpen) return null;
 
@@ -73,10 +76,12 @@ export default function CreatePlanModal({
             </div>
             <div>
               <h3 className="text-2xl font-bold text-[#2D2F33]">
-                {type === 'Restaurant' ? 'Create New Restaurant Plan' : 'Create New Branch Plan'}
+                {type === 'Restaurant'
+                  ? (isAr ? 'إنشاء خطة مطعم جديدة' : 'Create New Restaurant Plan')
+                  : (isAr ? 'إنشاء خطة فرع جديدة' : 'Create New Branch Plan')}
               </h3>
               <p className="text-xs text-[#6E727A]">
-                Configure pricing, limits, and feature permissions for this tier
+                {isAr ? 'اضبط الأسعار والحدود وأذونات الميزات لهذه الفئة' : 'Configure pricing, limits, and feature permissions for this tier'}
               </p>
             </div>
           </div>
@@ -88,19 +93,19 @@ export default function CreatePlanModal({
         <form onSubmit={handleSubmit} className="space-y-5 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Plan Name *</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'اسم الخطة *' : 'Plan Name *'}</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Growth Franchise"
+                placeholder={isAr ? 'مثال: امتياز النمو' : 'e.g. Growth Franchise'}
                 className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Plan Scope</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'نطاق الخطة' : 'Plan Scope'}</label>
               <input
                 type="text"
                 disabled
@@ -112,7 +117,7 @@ export default function CreatePlanModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Monthly Price ($) *</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'السعر الشهري ($) *' : 'Monthly Price ($) *'}</label>
               <input
                 type="number"
                 required
@@ -124,7 +129,7 @@ export default function CreatePlanModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Annual Price ($) *</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'السعر السنوي ($) *' : 'Annual Price ($) *'}</label>
               <input
                 type="number"
                 required
@@ -139,7 +144,7 @@ export default function CreatePlanModal({
           {type === 'Restaurant' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#2D2F33] uppercase">Max Included Branches</label>
+                <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'أقصى عدد للفروع المشمولة' : 'Max Included Branches'}</label>
                 <input
                   type="number"
                   value={maxBranches}
@@ -149,7 +154,7 @@ export default function CreatePlanModal({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#2D2F33] uppercase">Max Staff Accounts</label>
+                <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'أقصى عدد لحسابات الموظفين' : 'Max Staff Accounts'}</label>
                 <input
                   type="number"
                   value={maxStaff}
@@ -161,19 +166,19 @@ export default function CreatePlanModal({
           )}
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Description</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'الوصف' : 'Description'}</label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short plan summary displayed to restaurant owners..."
+              placeholder={isAr ? 'ملخص قصير للخطة يظهر لأصحاب المطاعم...' : 'Short plan summary displayed to restaurant owners...'}
               className="w-full p-3 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none resize-none"
             />
           </div>
 
           {/* Features Builder */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Feature Bullets</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'نقاط الميزات' : 'Feature Bullets'}</label>
             <div className="space-y-2 max-h-36 overflow-y-auto">
               {features.map((feat, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-[#2D2F33]">
@@ -199,7 +204,7 @@ export default function CreatePlanModal({
                     handleAddFeature();
                   }
                 }}
-                placeholder="Type feature name and click Add"
+                placeholder={isAr ? 'اكتب اسم الميزة وانقر إضافة' : 'Type feature name and click Add'}
                 className="flex-1 h-11 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-xs focus:border-[#026F4F] focus:outline-none"
               />
               <button
@@ -208,7 +213,7 @@ export default function CreatePlanModal({
                 className="px-4 h-11 bg-gray-100 hover:bg-gray-200 text-[#2D2F33] font-semibold text-xs rounded-xl flex items-center gap-1"
               >
                 <Plus size={16} />
-                <span>Add</span>
+                <span>{isAr ? 'إضافة' : 'Add'}</span>
               </button>
             </div>
           </div>
@@ -225,7 +230,7 @@ export default function CreatePlanModal({
               type="submit"
               className="px-8 py-2.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2"
             >
-              <span>Save & Publish Plan</span>
+              <span>{isAr ? 'حفظ ونشر الخطة' : 'Save & Publish Plan'}</span>
               <Check size={16} />
             </button>
           </div>

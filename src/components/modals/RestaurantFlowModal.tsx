@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { locField, toArDate, planNameAr, tierArLabel, billingCycleAr, billingPerLabel } from '../../lib/localize';
 import {
   ArrowLeft,
   TrendingUp,
@@ -122,6 +124,14 @@ function BranchDetailsPanel({
   onOpenEditForm,
   onPatchRestaurant,
 }: BranchDetailsPanelProps) {
+  const t = useTranslations('sa.restaurantModal');
+  const ts = useTranslations('common.status');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const tierName = (tier: FigmaTier) => (isAr ? tierArLabel(tier) : tier);
+  const cycleName = (billing: FigmaBillingCycle) => (isAr ? billingCycleAr(billing) : billing);
+  const tabLabel = (tb: BranchTab) =>
+    tb === 'Overview' ? t('tabs.overview') : tb === 'Subscription' ? t('tabs.subscription') : t('tabs.activity');
   const [branchName, setBranchName] = useState(branch.name);
   const [email, setEmail] = useState(branch.managerEmail);
   const [phone, setPhone] = useState(branch.phone);
@@ -161,7 +171,7 @@ function BranchDetailsPanel({
       ...prev,
       {
         id: `note-${Date.now()}`,
-        by: '(Admin)',
+        by: t('adminBy'),
         text,
         date: new Date().toLocaleDateString('en-US', {
           month: '2-digit',
@@ -199,20 +209,20 @@ function BranchDetailsPanel({
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
         <button
           onClick={onBack}
-          aria-label="Back to branches"
+          aria-label={t('backToBranches')}
           className="w-12 h-12 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="rtl:scale-x-[-1]" />
         </button>
         <div className="text-center">
-          <h2 className="text-2xl sm:text-3xl font-semibold text-[#2D2F33]">{branch.name}</h2>
-          <p className="text-[#686868] mt-1">ID: {idCode(branch.id)}</p>
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[#2D2F33]">{locField(locale, branch, 'name')}</h2>
+          <p className="text-[#686868] mt-1">{isAr ? 'المعرف' : 'ID'}: <bdi dir="ltr">{idCode(branch.id)}</bdi></p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenEditForm}
-            aria-label="Edit branch details"
-            title="Edit branch details"
+            aria-label={t('editBranchDetails')}
+            title={t('editBranchDetails')}
             className="w-10 h-10 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
           >
             <SquarePen size={18} />
@@ -220,7 +230,7 @@ function BranchDetailsPanel({
           <button
             role="switch"
             aria-checked={isActive}
-            aria-label="Branch active status"
+            aria-label={t('branchActiveStatus')}
             onClick={() => {
               const next = !isActive;
               setIsActive(next);
@@ -232,7 +242,7 @@ function BranchDetailsPanel({
           >
             <span
               className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${
-                isActive ? 'translate-x-6' : 'translate-x-0'
+                isActive ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
               }`}
             />
           </button>
@@ -240,53 +250,53 @@ function BranchDetailsPanel({
       </div>
 
       <div className="flex gap-2.5 overflow-x-auto pb-1">
-        {branchTabs.map((t) => (
+        {branchTabs.map((bt) => (
           <button
-            key={t}
-            onClick={() => onTabChange(t)}
+            key={bt}
+            onClick={() => onTabChange(bt)}
             className={`px-6 py-2.5 rounded-full text-[15px] font-medium whitespace-nowrap transition-all ${
-              tab === t
+              tab === bt
                 ? 'bg-[#026F4F] text-white shadow-md'
                 : 'bg-white text-[#686868] hover:text-[#2D2F33]'
             }`}
           >
-            {t}
+            {tabLabel(bt)}
           </button>
         ))}
       </div>
 
       {tab === 'Overview' && (
         <div className="space-y-5">
-          <p className="text-sm text-[#686868]">Quick Stats</p>
+          <p className="text-sm text-[#686868]">{t('quickStats')}</p>
           <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-5">
-              <p className="text-[#686868]">Total Orders (30d)</p>
+              <p className="text-[#686868]">{t('totalOrders30d')}</p>
               <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
                 {branch.ordersToday.toLocaleString()}
               </p>
               <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                 <TrendingUp size={16} />
-                <span>12.5% vs Last Month</span>
+                <span>{t('vsLastMonth')}</span>
               </p>
             </div>
             <div className="bg-white rounded-2xl p-5">
-              <p className="text-[#686868]">Revenue (30d)</p>
+              <p className="text-[#686868]">{t('revenue30d')}</p>
               <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
                 ${branch.revenueToday.toLocaleString()}
               </p>
               <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                 <TrendingUp size={16} />
-                <span>12.5% vs Last Month</span>
+                <span>{t('vsLastMonth')}</span>
               </p>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl p-5 space-y-4">
             {[
-              { label: 'Branch Name', value: branchName, set: setBranchName, type: 'text' },
-              { label: 'Email Address', value: email, set: setEmail, type: 'email' },
-              { label: 'Phone Number', value: phone, set: setPhone, type: 'tel' },
-              { label: 'Full Address', value: fullAddress, set: setFullAddress, type: 'text' },
+              { label: t('branchName'), value: branchName, set: setBranchName, type: 'text' },
+              { label: t('emailAddress'), value: email, set: setEmail, type: 'email' },
+              { label: t('phoneNumber'), value: phone, set: setPhone, type: 'tel' },
+              { label: t('fullAddress'), value: fullAddress, set: setFullAddress, type: 'text' },
             ].map((f) => (
               <div key={f.label} className="space-y-1.5">
                 <label className="block text-sm text-[#2D2F33]">{f.label}</label>
@@ -302,19 +312,19 @@ function BranchDetailsPanel({
           </div>
 
           <div className="bg-white rounded-2xl p-5 space-y-4">
-            <h3 className="text-lg font-semibold text-[#2D2F33]">Login Credentials</h3>
+            <h3 className="text-lg font-semibold text-[#2D2F33]">{t('loginCredentials')}</h3>
             <div className="space-y-1.5">
-              <label className="block text-sm text-[#2D2F33]">Email</label>
-              <input
+              <label className="block text-sm text-[#2D2F33]">{t('email')}</label>
+              <input dir="ltr"
                 type="email"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="e.g. example@gmail.com"
+                placeholder={t('emailPlaceholder')}
                 className={pillInput}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="block text-sm text-[#2D2F33]">Temporary Password</label>
+              <label className="block text-sm text-[#2D2F33]">{t('tempPassword')}</label>
               <input
                 type="text"
                 value={tempPassword}
@@ -327,11 +337,11 @@ function BranchDetailsPanel({
 
           <div className="bg-white rounded-2xl p-5 space-y-4">
             <div className="space-y-1.5">
-              <label className="block text-sm text-[#2D2F33]">Add New Notes</label>
+              <label className="block text-sm text-[#2D2F33]">{t('addNewNotes')}</label>
               <textarea
                 value={noteDraft}
                 onChange={(e) => setNoteDraft(e.target.value)}
-                placeholder="Enter your notes"
+                placeholder={t('notesPlaceholder')}
                 rows={3}
                 className="w-full px-6 py-4 bg-[#F2F2F2] rounded-2xl text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 resize-none"
               />
@@ -339,13 +349,13 @@ function BranchDetailsPanel({
                 onClick={addNote}
                 className="px-6 py-2.5 rounded-full bg-[#026F4F]/10 hover:bg-[#026F4F]/15 text-[#026F4F] text-sm font-semibold transition-colors"
               >
-                Add Note
+                {t('addNote')}
               </button>
             </div>
             <div className="space-y-1.5">
-              <p className="text-sm text-[#2D2F33]">Previous Notes ({notes.length})</p>
+              <p className="text-sm text-[#2D2F33]">{t('previousNotes', { count: notes.length })}</p>
               {notes.length === 0 ? (
-                <p className="text-sm text-[#989898]">No notes yet.</p>
+                <p className="text-sm text-[#989898]">{t('noNotes')}</p>
               ) : (
                 <div className="space-y-3">
                   {notes.map((note) => (
@@ -357,7 +367,7 @@ function BranchDetailsPanel({
                       </div>
                       <button
                         onClick={() => setNotes((prev) => prev.filter((n) => n.id !== note.id))}
-                        aria-label="Delete note"
+                        aria-label={t('deleteNote')}
                         className="text-[#E52B2B] hover:text-red-700 transition-colors flex-shrink-0 mt-1"
                       >
                         <Trash2 size={18} />
@@ -374,7 +384,7 @@ function BranchDetailsPanel({
               onClick={resetOverview}
               className="py-3.5 rounded-full border border-gray-300 text-[#2D2F33] font-medium hover:bg-gray-100 transition-all"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={() => {
@@ -383,7 +393,7 @@ function BranchDetailsPanel({
               }}
               className="py-3.5 rounded-full bg-[#E52B2B] hover:bg-red-700 text-white font-medium transition-all"
             >
-              {deleteArmed ? 'Confirm Delete?' : 'Delete Branch'}
+              {deleteArmed ? t('confirmDelete') : t('deleteBranch')}
             </button>
           </div>
         </div>
@@ -395,20 +405,20 @@ function BranchDetailsPanel({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-3 text-2xl font-semibold">
-                  {branch.planName}
+                  {locField(locale, branch, 'planName')}
                   <span className="text-[11px] font-bold bg-[#22C55E] text-white px-2.5 py-1 rounded-full uppercase tracking-wide">
-                    {branch.status === 'Active' ? 'Active' : branch.status}
+                    {branch.status === 'Active' ? ts('active') : ts('inactive')}
                   </span>
                 </p>
-                <p className="text-white/60 text-sm mt-2">{tierBlurb(branch.planName)}</p>
+                <p className="text-white/60 text-sm mt-2">{tierBlurb(locField(locale, branch, 'planName') || branch.planName, locale)}</p>
                 <p className="text-3xl font-semibold mt-3">
-                  ${price.amount.toLocaleString()}
-                  <span className="text-base font-normal text-white/70">/{price.per}</span>
+                  <bdi dir="ltr">${price.amount.toLocaleString()}</bdi>
+                  <span className="text-base font-normal text-white/70">/{billingPerLabel(locale, price.per)}</span>
                 </p>
               </div>
-              <div className="border border-white/25 rounded-lg px-4 py-2.5 text-right flex-shrink-0">
-                <p className="text-xs text-white/60">Next Renewal</p>
-                <p className="font-semibold mt-0.5 whitespace-nowrap">{branch.planExpiry}</p>
+              <div className="border border-white/25 rounded-lg px-4 py-2.5 text-end flex-shrink-0">
+                <p className="text-xs text-white/60">{t('nextRenewal')}</p>
+                <p className="font-semibold mt-0.5 whitespace-nowrap">{locField(locale, branch, 'planExpiry')}</p>
               </div>
             </div>
             <div className="border-t border-dashed border-white/25 my-5" />
@@ -417,28 +427,29 @@ function BranchDetailsPanel({
                 onClick={() => (covered ? setIsBlockedOpen(true) : setIsModifyOpen(true))}
                 className="py-2.5 rounded-lg bg-white text-[#2D2F33] text-sm font-semibold hover:bg-gray-100 transition-colors"
               >
-                Modify Plan
+                {t('modifyPlan')}
               </button>
               <button
                 onClick={() => {
-                  onPatchBranch({ planExpiry: addYear(branch.planExpiry) });
-                  setSubNote('Plan renewed for one more year.');
+                  const renewed = addYear(branch.planExpiry);
+                  onPatchBranch({ planExpiry: renewed, planExpiry_ar: toArDate(renewed) });
+                  setSubNote(t('planRenewedYear'));
                   setCancelArmed(false);
                 }}
                 className="py-2.5 rounded-lg border border-white/50 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
               >
-                Renew Plan
+                {t('renewPlan')}
               </button>
               <button
                 onClick={() => {
                   if (cancelArmed) {
-                    setSubNote('Auto-renewal cancelled.');
+                    setSubNote(t('autoRenewalCancelled'));
                     setCancelArmed(false);
                   } else setCancelArmed(true);
                 }}
                 className="py-2.5 rounded-lg bg-[#3B4252] text-white text-sm font-semibold hover:bg-[#454d61] transition-colors"
               >
-                {cancelArmed ? 'Confirm?' : 'Cancel Renewal'}
+                {cancelArmed ? t('confirm') : t('cancelRenewal')}
               </button>
             </div>
             {subNote && (
@@ -450,25 +461,25 @@ function BranchDetailsPanel({
           </div>
 
           <div className="bg-white rounded-2xl p-5 space-y-3">
-            <h3 className="text-lg font-medium text-[#2D2F33]">Offline Management</h3>
+            <h3 className="text-lg font-medium text-[#2D2F33]">{t('offlineManagement')}</h3>
             <p className="text-sm text-[#989898]">
-              Manage payments outside the app. Log a received payment out side the app.
+              {t('offlineManagementDesc')}
             </p>
             <button
               onClick={() => setIsLogOpen(true)}
               className="w-full py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
             >
-              Log Payment
+              {t('logPayment')}
             </button>
           </div>
 
           <div className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4">
-            <p className="text-[17px] font-medium text-[#2D2F33]">Activate Without Payment</p>
+            <p className="text-[17px] font-medium text-[#2D2F33]">{t('activateWithoutPayment')}</p>
             <button
               onClick={() => setIsManualOpen(true)}
               className="px-5 py-2.5 rounded-lg bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold transition-all flex-shrink-0"
             >
-              Activate Manually
+              {t('activateManually')}
             </button>
           </div>
         </div>
@@ -477,7 +488,7 @@ function BranchDetailsPanel({
       {tab === 'Activity' && (
         <div className="space-y-0">
           {(branch.activities || []).length === 0 ? (
-            <p className="text-sm text-[#989898]">No activity recorded yet.</p>
+            <p className="text-sm text-[#989898]">{t('noActivity')}</p>
           ) : (
             (branch.activities || []).map((a, i, arr) => (
               <div key={a.id} className="flex gap-3">
@@ -486,10 +497,10 @@ function BranchDetailsPanel({
                   {i < arr.length - 1 && <span className="w-px flex-1 bg-gray-300" />}
                 </div>
                 <div className="pb-7">
-                  <p className="font-semibold text-[#2D2F33] text-[17px]">{a.description}</p>
+                  <p className="font-semibold text-[#2D2F33] text-[17px]">{locField(locale, a, 'description')}</p>
                   <p className="flex items-center gap-1.5 text-sm text-[#989898] mt-1.5">
                     <Clock size={15} />
-                    <span>{a.time}</span>
+                    <span>{locField(locale, a, 'time')}</span>
                   </p>
                 </div>
               </div>
@@ -506,10 +517,11 @@ function BranchDetailsPanel({
         onActivate={(tier: FigmaTier, billing: FigmaBillingCycle, price: number) => {
           onPatchBranch({
             planName: `${tier} Plan`,
+            planName_ar: planNameAr(`${tier} Plan`),
             monthlyFee: Math.round(effectiveMonthly(FIGMA_TIERS.find((t) => t.tier === tier)!.monthlyPrice, billing)),
             planExpiry: branch.planExpiry,
           });
-          setSubNote(`Plan changed to ${tier} (${billing}).`);
+          setSubNote(t('planChanged', { tier: tierName(tier), billing: cycleName(billing) }));
           setIsModifyOpen(false);
         }}
       />
@@ -520,8 +532,8 @@ function BranchDetailsPanel({
         placement="right"
         onClose={() => setIsBlockedOpen(false)}
         onCancelRestaurantPlan={() => {
-          onPatchRestaurant({ planName: 'No Active Plan', planPrice: 0, planExpiry: '—' });
-          setSubNote('Restaurant plan cancelled — branch plans are now individual.');
+          onPatchRestaurant({ planName: 'No Active Plan', planName_ar: 'لا توجد خطة نشطة', planPrice: 0, planExpiry: '—' });
+          setSubNote(t('restaurantPlanCancelled'));
           setIsBlockedOpen(false);
         }}
       />
@@ -535,11 +547,13 @@ function BranchDetailsPanel({
           const monthly = FIGMA_TIERS.find((t) => t.tier === tier)!.monthlyPrice;
           onPatchBranch({
             planName: `${tier} Plan`,
+            planName_ar: planNameAr(`${tier} Plan`),
             monthlyFee: monthly,
             planExpiry: formatExpiryInput(expiryDate, branch.planExpiry),
+            planExpiry_ar: toArDate(formatExpiryInput(expiryDate, branch.planExpiry)),
             status: 'Active',
           });
-          setSubNote(`${tier} plan activated manually.`);
+          setSubNote(t('planActivatedManual', { tier: tierName(tier) }));
           setIsManualOpen(false);
         }}
       />
@@ -553,12 +567,15 @@ function BranchDetailsPanel({
         onConfirm={(_rid, planId, months) => {
           const plan = mockPlans.find((p) => p.id === planId);
           if (plan) {
+            const expiry = addMonths(new Date().toDateString(), months);
             onPatchBranch({
               planName: plan.name,
+              planName_ar: locField(locale, plan, 'name'),
               monthlyFee: plan.priceMonthly,
-              planExpiry: addMonths(new Date().toDateString(), months),
+              planExpiry: expiry,
+              planExpiry_ar: toArDate(expiry),
             });
-            setSubNote(`Offline payment logged (${plan.name}, ${months} mo).`);
+            setSubNote(t('offlinePaymentLogged', { plan: locField(locale, plan, 'name'), months }));
           }
           setIsLogOpen(false);
         }}
@@ -578,6 +595,17 @@ export default function RestaurantFlowModal({
   initialBranch?: { id: string; tab: BranchTab } | null;
   onClose: () => void;
 }) {
+  const t = useTranslations('sa.restaurantModal');
+  const ts = useTranslations('common.status');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const tierName = (tier: FigmaTier) => (isAr ? tierArLabel(tier) : tier);
+  const cycleName = (billing: FigmaBillingCycle) => (isAr ? billingCycleAr(billing) : billing);
+  const tabLabel = (tb: Tab) =>
+    tb === 'Overview' ? t('tabs.overview')
+    : tb === 'Branches' ? t('tabs.branches')
+    : tb === 'Subscription' ? t('tabs.subscription')
+    : t('tabs.activity');
   const [restaurants, setRestaurants] = useState<Restaurant[]>(getRestaurants());
   const restaurant = restaurants.find((r) => r.id === restaurantId) || restaurants[0];
 
@@ -678,7 +706,9 @@ export default function RestaurantFlowModal({
         revenueToday: 0,
         status: 'Active',
         planName: restaurant.planName,
+        planName_ar: locField(locale, restaurant, 'planName') || restaurant.planName,
         planExpiry: restaurant.planExpiry,
+        planExpiry_ar: locField(locale, restaurant, 'planExpiry') || restaurant.planExpiry,
         monthlyFee: 0,
       };
       patchRestaurant({ branches: [...restaurant.branches, nb] });
@@ -723,7 +753,7 @@ export default function RestaurantFlowModal({
       ...prev,
       {
         id: `note-${Date.now()}`,
-        by: '(Admin)',
+        by: t('adminBy'),
         text,
         date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       },
@@ -766,27 +796,27 @@ export default function RestaurantFlowModal({
                     setActiveTab('Branches');
                   }
                 }}
-                aria-label="Back to branches"
+                aria-label={t('backToBranches')}
                 className="w-12 h-12 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={20} className="rtl:scale-x-[-1]" />
               </button>
             ) : (
               <button
                 onClick={onClose}
-                aria-label="Back to restaurants"
+                aria-label={t('backToRestaurants')}
                 className="w-12 h-12 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={20} className="rtl:scale-x-[-1]" />
               </button>
             )}
             <div className="text-center">
               <h2 className="text-2xl sm:text-3xl font-semibold text-[#2D2F33]">
                 {branchPanel?.mode === 'add'
-                  ? 'Add New Branch'
+                  ? t('addNewBranch')
                   : branchPanel?.mode === 'edit'
-                    ? editingBranch?.name || 'Main Branch'
-                    : restaurant.name}
+                    ? (editingBranch ? locField(locale, editingBranch, 'name') : t('mainBranch'))
+                    : locField(locale, restaurant, 'name')}
               </h2>
               {!branchPanel && (
                 <p className="text-[#686868] mt-1">ID: {idCode(restaurant.id)}</p>
@@ -796,7 +826,7 @@ export default function RestaurantFlowModal({
               <button
                 role="switch"
                 aria-checked={isActive}
-                aria-label="Restaurant active status"
+                aria-label={t('restaurantActiveStatus')}
                 onClick={() => {
                   const next = !isActive;
                   setIsActive(next);
@@ -808,7 +838,7 @@ export default function RestaurantFlowModal({
               >
                 <span
                   className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${
-                    isActive ? 'translate-x-6' : 'translate-x-0'
+                    isActive ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -821,7 +851,7 @@ export default function RestaurantFlowModal({
             <>
               {/* Tabs (Figma: Overview / Branches / Subscription / Activity) */}
               <div className="flex gap-2.5 overflow-x-auto pb-1">
-                {tabs.map((tab) => (
+                 {tabs.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -831,7 +861,7 @@ export default function RestaurantFlowModal({
                         : 'bg-white text-[#686868] hover:text-[#2D2F33]'
                     }`}
                   >
-                    {tab}
+                    {tabLabel(tab)}
                   </button>
                 ))}
               </div>
@@ -839,37 +869,37 @@ export default function RestaurantFlowModal({
               {/* OVERVIEW (Figma 1862:762) */}
               {activeTab === 'Overview' && (
                 <div className="space-y-5">
-                  <p className="text-sm text-[#686868]">Quick Stats</p>
+                  <p className="text-sm text-[#686868]">{t('quickStats')}</p>
                   <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-4">
                     <div className="bg-white rounded-2xl p-5">
-                      <p className="text-[#686868]">Total Orders (30d)</p>
+                      <p className="text-[#686868]">{t('totalOrders30d')}</p>
                       <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
                         {restaurant.totalOrders.toLocaleString()}
                       </p>
                       <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                         <TrendingUp size={16} />
-                        <span>12.5% vs Last Month</span>
+                        <span>{t('vsLastMonth')}</span>
                       </p>
                     </div>
                     <div className="bg-white rounded-2xl p-5">
-                      <p className="text-[#686868]">Revenue (30d)</p>
+                      <p className="text-[#686868]">{t('revenue30d')}</p>
                       <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
                         ${restaurant.totalRevenue.toLocaleString()}
                       </p>
                       <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                         <TrendingUp size={16} />
-                        <span>12.5% vs Last Month</span>
+                        <span>{t('vsLastMonth')}</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="bg-white rounded-2xl p-5 space-y-4">
-                    {[
-                      { label: 'Owner Name', value: ownerName, set: setOwnerName, type: 'text' },
-                      { label: 'Email Address', value: ownerEmail, set: setOwnerEmail, type: 'email' },
-                      { label: 'Phone Number', value: ownerPhone, set: setOwnerPhone, type: 'tel' },
-                      { label: 'Secondary Phone Number', value: secondPhone, set: setSecondPhone, type: 'tel' },
-                      { label: 'Primary Location', value: primaryLocation, set: setPrimaryLocation, type: 'text' },
+                     {[
+                      { label: t('ownerName'), value: ownerName, set: setOwnerName, type: 'text' },
+                      { label: t('emailAddress'), value: ownerEmail, set: setOwnerEmail, type: 'email' },
+                      { label: t('phoneNumber'), value: ownerPhone, set: setOwnerPhone, type: 'tel' },
+                      { label: t('secondaryPhone'), value: secondPhone, set: setSecondPhone, type: 'tel' },
+                      { label: t('primaryLocation'), value: primaryLocation, set: setPrimaryLocation, type: 'text' },
                     ].map((f) => (
                       <div key={f.label} className="space-y-1.5">
                         <label className="block text-sm text-[#2D2F33]">{f.label}</label>
@@ -884,19 +914,19 @@ export default function RestaurantFlowModal({
                   </div>
 
                   <div className="bg-white rounded-2xl p-5 space-y-4">
-                    <h3 className="text-lg font-semibold text-[#2D2F33]">Login Credentials</h3>
+                    <h3 className="text-lg font-semibold text-[#2D2F33]">{t('loginCredentials')}</h3>
                     <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">Email</label>
-                      <input
+                      <label className="block text-sm text-[#2D2F33]">{t('email')}</label>
+                      <input dir="ltr"
                         type="email"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
-                        placeholder="e.g. example@gmail.com"
+                        placeholder={t('emailPlaceholder')}
                         className={pillInput}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">Temporary Password</label>
+                      <label className="block text-sm text-[#2D2F33]">{t('tempPassword')}</label>
                       <input
                         type="text"
                         value={tempPassword}
@@ -909,11 +939,11 @@ export default function RestaurantFlowModal({
 
                   <div className="bg-white rounded-2xl p-5 space-y-4">
                     <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">Add New Notes</label>
+                      <label className="block text-sm text-[#2D2F33]">{t('addNewNotes')}</label>
                       <textarea
                         value={noteDraft}
                         onChange={(e) => setNoteDraft(e.target.value)}
-                        placeholder="Enter your notes"
+                        placeholder={t('notesPlaceholder')}
                         rows={3}
                         className="w-full px-6 py-4 bg-[#F2F2F2] rounded-2xl text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 resize-none"
                       />
@@ -921,13 +951,13 @@ export default function RestaurantFlowModal({
                         onClick={addNote}
                         className="px-6 py-2.5 rounded-full bg-[#026F4F]/10 hover:bg-[#026F4F]/15 text-[#026F4F] text-sm font-semibold transition-colors"
                       >
-                        Add Note
+                        {t('addNote')}
                       </button>
                     </div>
                     <div className="space-y-1.5">
-                      <p className="text-sm text-[#2D2F33]">Previous Notes ({notes.length})</p>
+                      <p className="text-sm text-[#2D2F33]">{t('previousNotes', { count: notes.length })}</p>
                       {notes.length === 0 ? (
-                        <p className="text-sm text-[#989898]">No notes yet.</p>
+                        <p className="text-sm text-[#989898]">{t('noNotes')}</p>
                       ) : (
                         <div className="space-y-3">
                           {notes.map((note) => (
@@ -939,7 +969,7 @@ export default function RestaurantFlowModal({
                               </div>
                               <button
                                 onClick={() => setNotes((prev) => prev.filter((n) => n.id !== note.id))}
-                                aria-label="Delete note"
+                                aria-label={t('deleteNote')}
                                 className="text-[#E52B2B] hover:text-red-700 transition-colors flex-shrink-0 mt-1"
                               >
                                 <Trash2 size={18} />
@@ -967,7 +997,7 @@ export default function RestaurantFlowModal({
                       }}
                       className="py-3.5 rounded-full bg-[#E52B2B] hover:bg-red-700 text-white font-medium transition-all"
                     >
-                      {deleteArmed ? 'Confirm Delete?' : 'Delete Restaurant'}
+                      {deleteArmed ? t('confirmDelete') : t('deleteRestaurant')}
                     </button>
                   </div>
                 </div>
@@ -978,14 +1008,14 @@ export default function RestaurantFlowModal({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-[#686868]">
-                      Active Locations ({restaurant.branches.length})
+                      {t('activeLocations', { count: restaurant.branches.length })}
                     </p>
                     <button
                       onClick={openAddBranch}
                       className="flex items-center gap-1.5 text-[#026F4F] font-semibold text-[15px] hover:underline"
                     >
                       <Plus size={18} />
-                      <span>Add Branch</span>
+                      <span>{t('addBranch')}</span>
                     </button>
                   </div>
                   <div className="space-y-3">
@@ -993,21 +1023,21 @@ export default function RestaurantFlowModal({
                       <button
                         key={branch.id}
                         onClick={() => openBranchDetails(branch)}
-                        className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 text-left hover:shadow-md transition-shadow"
+                        className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 text-start hover:shadow-md transition-shadow"
                       >
                         <span className="w-14 h-14 rounded-xl bg-[#F2F2F2] flex items-center justify-center text-[#686868] flex-shrink-0">
                           <Store size={26} strokeWidth={1.6} />
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="block font-semibold text-[#2D2F33] text-[17px] truncate">
-                            {branch.name}
+                            {locField(locale, branch, 'name')}
                           </span>
                           <span className="block text-sm text-[#989898] truncate mt-0.5">
-                            {branch.address}
+                            {locField(locale, branch, 'address')}
                           </span>
                         </span>
                         <span className="text-sm font-medium px-4 py-1.5 rounded-lg bg-[#D9F5D9] text-[#158F15] flex-shrink-0">
-                          Paid
+                          {t('paid')}
                         </span>
                       </button>
                     ))}
@@ -1022,22 +1052,22 @@ export default function RestaurantFlowModal({
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="flex items-center gap-3 text-2xl font-semibold">
-                          {restaurant.planName}
+                          {locField(locale, restaurant, 'planName')}
                           <span className="text-[11px] font-bold bg-[#22C55E] text-white px-2.5 py-1 rounded-full uppercase tracking-wide">
-                            {isActive ? 'Active' : restaurant.status}
+                            {isActive ? ts('active') : restaurant.status === 'Suspended' ? ts('suspended') : ts('pending')}
                           </span>
                         </p>
-                        <p className="text-white/60 text-sm mt-2">{tierBlurb(restaurant.planName)}</p>
+                        <p className="text-white/60 text-sm mt-2">{tierBlurb(locField(locale, restaurant, 'planName') || restaurant.planName, locale)}</p>
                         <p className="text-3xl font-semibold mt-3">
-                          ${restaurant.planPrice.toLocaleString()}
+                          <bdi dir="ltr">${restaurant.planPrice.toLocaleString()}</bdi>
                           <span className="text-base font-normal text-white/70">
-                            /{restaurant.planBilling === 'Monthly' ? 'Month' : restaurant.planBilling}
+                            /{billingPerLabel(locale, restaurant.planBilling === 'Monthly' ? 'Month' : restaurant.planBilling)}
                           </span>
                         </p>
                       </div>
-                      <div className="border border-white/25 rounded-lg px-4 py-2.5 text-right flex-shrink-0">
-                        <p className="text-xs text-white/60">Next Renewal</p>
-                        <p className="font-semibold mt-0.5 whitespace-nowrap">{restaurant.planExpiry}</p>
+                      <div className="border border-white/25 rounded-lg px-4 py-2.5 text-end flex-shrink-0">
+                        <p className="text-xs text-white/60">{t('nextRenewal')}</p>
+                        <p className="font-semibold mt-0.5 whitespace-nowrap">{locField(locale, restaurant, 'planExpiry')}</p>
                       </div>
                     </div>
                     <div className="border-t border-dashed border-white/25 my-5" />
@@ -1046,28 +1076,29 @@ export default function RestaurantFlowModal({
                         onClick={() => setIsModifyOpen(true)}
                         className="py-2.5 rounded-lg bg-white text-[#2D2F33] text-sm font-semibold hover:bg-gray-100 transition-colors"
                       >
-                        Modify Plan
+                        {t('modifyPlan')}
                       </button>
                       <button
                         onClick={() => {
-                          patchRestaurant({ planExpiry: addYear(restaurant.planExpiry) });
-                          setRenewalNote('Plan renewed for one more year.');
+                          const renewedRt = addYear(restaurant.planExpiry);
+                          patchRestaurant({ planExpiry: renewedRt, planExpiry_ar: toArDate(renewedRt) });
+                          setRenewalNote(t('planRenewedYear'));
                           setCancelArmed(false);
                         }}
                         className="py-2.5 rounded-lg border border-white/50 text-white text-sm font-semibold hover:bg-white/10 transition-colors"
                       >
-                        Renew Plan
+                        {t('renewPlan')}
                       </button>
                       <button
                         onClick={() => {
                           if (cancelArmed) {
-                            setRenewalNote('Auto-renewal cancelled.');
+                            setRenewalNote(t('autoRenewalCancelled'));
                             setCancelArmed(false);
                           } else setCancelArmed(true);
                         }}
                         className="py-2.5 rounded-lg bg-[#3B4252] text-white text-sm font-semibold hover:bg-[#454d61] transition-colors"
                       >
-                        {cancelArmed ? 'Confirm?' : 'Cancel Renewal'}
+                        {cancelArmed ? t('confirm') : t('cancelRenewal')}
                       </button>
                     </div>
                     {renewalNote && (
@@ -1079,25 +1110,25 @@ export default function RestaurantFlowModal({
                   </div>
 
                   <div className="bg-white rounded-2xl p-5 space-y-3">
-                    <h3 className="text-lg font-medium text-[#2D2F33]">Offline Management</h3>
+                    <h3 className="text-lg font-medium text-[#2D2F33]">{t('offlineManagement')}</h3>
                     <p className="text-sm text-[#989898]">
-                      Manage payments outside the app. Log a received payment out side the app.
+                      {t('offlineManagementDesc')}
                     </p>
                     <button
                       onClick={() => setIsLogPaymentOpen(true)}
                       className="w-full py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
                     >
-                      Log Payment
+                      {t('logPayment')}
                     </button>
                   </div>
 
                   <div className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4">
-                    <p className="text-[17px] font-medium text-[#2D2F33]">Activate Without Payment</p>
+                    <p className="text-[17px] font-medium text-[#2D2F33]">{t('activateWithoutPayment')}</p>
                     <button
                       onClick={() => setIsManualOpen(true)}
                       className="px-5 py-2.5 rounded-lg bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold transition-all flex-shrink-0"
                     >
-                      Activate Manually
+                      {t('activateManually')}
                     </button>
                   </div>
                 </div>
@@ -1107,7 +1138,7 @@ export default function RestaurantFlowModal({
               {activeTab === 'Activity' && (
                 <div className="space-y-0">
                   {activity.length === 0 ? (
-                    <p className="text-sm text-[#989898]">No activity recorded yet.</p>
+                    <p className="text-sm text-[#989898]">{t('noActivity')}</p>
                   ) : (
                     activity.map((a, i) => (
                       <div key={a.id} className="flex gap-3">
@@ -1116,10 +1147,10 @@ export default function RestaurantFlowModal({
                           {i < activity.length - 1 && <span className="w-px flex-1 bg-gray-300" />}
                         </div>
                         <div className="pb-7">
-                          <p className="font-semibold text-[#2D2F33] text-[17px]">{a.description}</p>
+                          <p className="font-semibold text-[#2D2F33] text-[17px]">{locField(locale, a, 'description')}</p>
                           <p className="flex items-center gap-1.5 text-sm text-[#989898] mt-1.5">
                             <Clock size={15} />
-                            <span>{a.time}</span>
+                            <span>{locField(locale, a, 'time')}</span>
                           </p>
                         </div>
                       </div>
@@ -1159,34 +1190,34 @@ export default function RestaurantFlowModal({
           {branchPanel && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl p-5 space-y-4">
-                <h3 className="text-lg font-semibold text-[#2D2F33]">Basic Info</h3>
+                <h3 className="text-lg font-semibold text-[#2D2F33]">{t('basicInfo')}</h3>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Branch Name</label>
+                  <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
                   <input
                     type="text"
                     value={branchName}
                     onChange={(e) => setBranchName(e.target.value)}
-                    placeholder="e.g. downtown Branch"
+                    placeholder={t('branchNamePlaceholder')}
                     className={pillInput}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Location</label>
+                  <label className="block text-sm text-[#2D2F33]">{t('location')}</label>
                   <MapPlaceholder />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Full Address</label>
+                  <label className="block text-sm text-[#2D2F33]">{t('fullAddress')}</label>
                   <input
                     type="text"
                     value={branchAddress}
                     onChange={(e) => setBranchAddress(e.target.value)}
-                    placeholder="Street-Zip.."
+                    placeholder={t('addressPlaceholder')}
                     className={pillInput}
                   />
                 </div>
                 <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">City</label>
+                    <label className="block text-sm text-[#2D2F33]">{t('city')}</label>
                     <input
                       type="text"
                       value={branchCity}
@@ -1195,7 +1226,7 @@ export default function RestaurantFlowModal({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">Country</label>
+                    <label className="block text-sm text-[#2D2F33]">{t('country')}</label>
                     <input
                       type="text"
                       value={branchCountry}
@@ -1207,11 +1238,11 @@ export default function RestaurantFlowModal({
               </div>
 
               <div className="bg-white rounded-2xl p-5 space-y-4">
-                <h3 className="text-lg font-semibold text-[#2D2F33]">Contact & Settings</h3>
+                <h3 className="text-lg font-semibold text-[#2D2F33]">{t('contactSettings')}</h3>
                 <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">Phone Number</label>
-                    <input
+                    <label className="block text-sm text-[#2D2F33]">{t('phoneNumber')}</label>
+                    <input dir="ltr"
                       type="tel"
                       value={branchPhone}
                       onChange={(e) => setBranchPhone(e.target.value)}
@@ -1220,8 +1251,8 @@ export default function RestaurantFlowModal({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">Email (Optional)</label>
-                    <input
+                    <label className="block text-sm text-[#2D2F33]">{t('emailOptional')}</label>
+                    <input dir="ltr"
                       type="email"
                       value={branchEmail}
                       onChange={(e) => setBranchEmail(e.target.value)}
@@ -1236,14 +1267,14 @@ export default function RestaurantFlowModal({
                   onClick={() => setBranchPanel(null)}
                   className="py-3.5 rounded-full border border-gray-300 text-[#2D2F33] font-medium hover:bg-gray-100 transition-all"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 {branchPanel.mode === 'add' ? (
                   <button
                     onClick={saveBranch}
                     className="py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
                   >
-                    Create Branch
+                    {t('createBranch')}
                   </button>
                 ) : (
                   <button
@@ -1253,7 +1284,7 @@ export default function RestaurantFlowModal({
                     }}
                     className="py-3.5 rounded-full bg-[#E52B2B] hover:bg-red-700 text-white font-medium transition-all"
                   >
-                    {branchDeleteArmed ? 'Confirm Delete?' : 'Delete Branch'}
+                    {branchDeleteArmed ? t('confirmDelete') : t('deleteBranch')}
                   </button>
                 )}
               </div>
@@ -1268,10 +1299,11 @@ export default function RestaurantFlowModal({
         onActivate={(tier: FigmaTier, billing: FigmaBillingCycle, price: number) => {
           patchRestaurant({
             planName: `${tier} Plan`,
+            planName_ar: planNameAr(`${tier} Plan`),
             planBilling: billing,
             planPrice: price,
           });
-          setRenewalNote(`Plan changed to ${tier} (${billing}).`);
+          setRenewalNote(t('planChanged', { tier: tierName(tier), billing: cycleName(billing) }));
           setIsModifyOpen(false);
         }}
       />
@@ -1284,6 +1316,7 @@ export default function RestaurantFlowModal({
           const monthly = FIGMA_TIERS.find((t) => t.tier === tier)!.monthlyPrice;
           patchRestaurant({
             planName: `${tier} Plan`,
+            planName_ar: planNameAr(`${tier} Plan`),
             planBilling: 'Monthly',
             planPrice: monthly,
             planExpiry: expiryDate
@@ -1296,7 +1329,7 @@ export default function RestaurantFlowModal({
             status: 'Active',
           });
           setIsActive(true);
-          setRenewalNote(`${tier} plan activated manually.`);
+          setRenewalNote(t('planActivatedManual', { tier: tierName(tier) }));
           setIsManualOpen(false);
         }}
       />
@@ -1312,10 +1345,11 @@ export default function RestaurantFlowModal({
           if (plan) {
             patchRestaurant({
               planName: plan.name,
+              planName_ar: locField(locale, plan, 'name'),
               planBilling: 'Monthly',
               planPrice: plan.priceMonthly * months,
             });
-            setRenewalNote(`Offline payment logged (${plan.name}, ${months} mo).`);
+            setRenewalNote(t('offlinePaymentLogged', { plan: locField(locale, plan, 'name'), months }));
           }
           setIsLogPaymentOpen(false);
         }}

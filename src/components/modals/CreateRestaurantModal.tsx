@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import PlanTierPicker from '../PlanTierPicker';
+import { toArDate, planNameAr } from '../../lib/localize';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import {
   FIGMA_TIERS,
@@ -96,6 +98,15 @@ export default function CreateRestaurantModal({
 
   // S4 — credentials
   const [credentials, setCredentials] = useState({ username: '', temporaryPassword: '' });
+  const t = useTranslations('sa.createRestaurant');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const CATEGORY_EN = ['Japanese & Ramen', 'Italian & Pizzeria', 'American Burger & Grill', 'Mexican & Tacos', 'French Bistro & Cafe', 'Seafood & Fine Dining'];
+  const catsAr = t.raw('categories') as unknown as string[];
+  const catLabel = (en: string) => {
+    const i = CATEGORY_EN.indexOf(en);
+    return isAr && catsAr[i] ? catsAr[i] : en;
+  };
 
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
@@ -124,6 +135,7 @@ export default function CreateRestaurantModal({
     const branches = draftBranches.map((b, i) => ({
       id: `br-${Date.now()}-${i}`,
       name: b.name || (i === 0 ? `${name} Main Branch` : `${name} Branch ${i + 1}`),
+      name_ar: b.name || undefined,
       address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
       phone: ownerPhone,
       managerName: ownerName,
@@ -133,7 +145,9 @@ export default function CreateRestaurantModal({
       revenueToday: 0,
       status: 'Active' as const,
       planName: `${chosenTier.tier} Plan`,
+      planName_ar: planNameAr(`${chosenTier.tier} Plan`),
       planExpiry: 'Sep 30, 2027',
+      planExpiry_ar: toArDate('Sep 30, 2027'),
       monthlyFee: 0,
     }));
 
@@ -149,11 +163,14 @@ export default function CreateRestaurantModal({
       address,
       status: 'Active' as const,
       joinedDate: 'Just now',
+      joinedDate_ar: 'الآن',
       planName: `${chosenTier.tier} Plan`,
+      planName_ar: planNameAr(`${chosenTier.tier} Plan`),
       planType: 'Restaurant',
       planBilling: billingCycle,
       planPrice: cycleTotal(chosenTier.monthlyPrice, billingCycle),
       planExpiry: 'Sep 30, 2027',
+      planExpiry_ar: toArDate('Sep 30, 2027'),
       totalBranches: branches.length,
       totalOrders: 0,
       totalRevenue: 0,
@@ -190,11 +207,11 @@ export default function CreateRestaurantModal({
           <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">
-                {step === 'credentials' ? 'Restaurant Created Successfully!' : 'Create New Restaurant'}
+                {step === 'credentials' ? t('createdTitle') : t('title')}
               </h3>
               <button
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t('close')}
                 className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
               >
                 <X size={20} />
@@ -210,57 +227,54 @@ export default function CreateRestaurantModal({
             <form onSubmit={handleInfoSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Restaurant Name *</label>
-                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kyoto Ramen Bar" className={pillInput} />
+                  <label className="block text-sm text-[#2D2F33]">{t('restaurantName')}</label>
+                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder={t('restaurantNamePlaceholder')} className={pillInput} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Category / Cuisine *</label>
+                  <label className="block text-sm text-[#2D2F33]">{t('category')}</label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} className={pillInput}>
-                    <option>Japanese & Ramen</option>
-                    <option>Italian & Pizzeria</option>
-                    <option>American Burger & Grill</option>
-                    <option>Mexican & Tacos</option>
-                    <option>French Bistro & Cafe</option>
-                    <option>Seafood & Fine Dining</option>
+                    {CATEGORY_EN.map((c) => (
+                      <option key={c} value={c}>{catLabel(c)}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Owner Full Name *</label>
-                  <input type="text" required value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Alexander Wright" className={pillInput} />
+                  <label className="block text-sm text-[#2D2F33]">{t('ownerFullName')}</label>
+                  <input type="text" required value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder={t('ownerNamePlaceholder')} className={pillInput} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Owner Email *</label>
-                  <input type="email" required value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder="alexander@domain.com" className={pillInput} />
+                  <label className="block text-sm text-[#2D2F33]">{t('ownerEmail')}</label>
+                  <input dir="ltr" type="email" required value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder={t('ownerEmailPlaceholder')} className={pillInput} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm text-[#2D2F33]">Phone Number *</label>
-                  <input type="tel" required value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder="+1 (555) 000-0000" className={pillInput} />
+                  <label className="block text-sm text-[#2D2F33]">{t('phoneNumber')}</label>
+                  <input dir="ltr" type="tel" required value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder={t('phonePlaceholder')} className={pillInput} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm text-[#2D2F33]">Headquarters / Primary Address *</label>
-                <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="742 Evergreen Terrace, Springfield, OR" className={pillInput} />
+                <label className="block text-sm text-[#2D2F33]">{t('hqAddress')}</label>
+                <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('hqPlaceholder')} className={pillInput} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm text-[#2D2F33]">Restaurant Logo / Brand Asset</label>
+                <label className="block text-sm text-[#2D2F33]">{t('logoTitle')}</label>
                 <div className="border-2 border-dashed border-gray-200 hover:border-[#026F4F] rounded-2xl p-4 text-center cursor-pointer transition-colors bg-[#F8F9FA]">
                   <Upload size={24} className="mx-auto text-[#989898] mb-1" />
-                  <p className="text-xs text-[#2D2F33] font-medium">Click to upload PNG or JPG logo</p>
-                  <p className="text-[11px] text-[#989898]">Recommended 400x400px (Max 5MB)</p>
+                  <p className="text-xs text-[#2D2F33] font-medium">{t('logoHint')}</p>
+                  <p className="text-[11px] text-[#989898]">{t('logoHint2')}</p>
                 </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button type="button" onClick={onClose} className="px-6 py-3 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50 transition-colors">
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button type="submit" className="px-8 py-3 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2 transition-all cursor-pointer">
-                  <span>Next Step</span>
+                  <span>{t('nextStep')}</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -272,8 +286,8 @@ export default function CreateRestaurantModal({
             <form onSubmit={handleBranchesSubmit} className="space-y-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h4 className="text-xl font-semibold text-[#2D2F33]">Locations & Branches</h4>
-                  <p className="text-[#989898] mt-1">Set up a restaurant in a few steps</p>
+                  <h4 className="text-xl font-semibold text-[#2D2F33]">{t('locationsTitle')}</h4>
+                  <p className="text-[#989898] mt-1">{t('locationsDesc')}</p>
                 </div>
                 <button
                   type="button"
@@ -281,7 +295,7 @@ export default function CreateRestaurantModal({
                   className="flex items-center gap-1.5 bg-[#026F4F]/10 hover:bg-[#026F4F]/15 text-[#026F4F] text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex-shrink-0"
                 >
                   <Plus size={16} />
-                  <span>Add Branch</span>
+                  <span>{t('addBranch')}</span>
                 </button>
               </div>
 
@@ -289,21 +303,21 @@ export default function CreateRestaurantModal({
                 <div key={i} className="space-y-5">
                   {i > 0 && (
                     <p className="text-sm font-semibold text-[#2D2F33] pt-2 border-t border-gray-100">
-                      Branch {i + 1}
+                      {t('branchN', { n: i + 1 })}
                     </p>
                   )}
                   <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">Branch Name</label>
-                    <input type="text" value={b.name} onChange={(e) => updateDraft(i, { name: e.target.value })} placeholder="Main Branch" className={pillInput} />
+                    <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
+                    <input type="text" value={b.name} onChange={(e) => updateDraft(i, { name: e.target.value })} placeholder={t('branchNamePlaceholder')} className={pillInput} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">City / Country</label>
-                      <input type="text" value={b.cityCountry} onChange={(e) => updateDraft(i, { cityCountry: e.target.value })} placeholder="e.g. New York, USA" className={pillInput} />
+                      <label className="block text-sm text-[#2D2F33]">{t('cityCountry')}</label>
+                      <input type="text" value={b.cityCountry} onChange={(e) => updateDraft(i, { cityCountry: e.target.value })} placeholder={t('cityCountryPlaceholder')} className={pillInput} />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">Full Address</label>
-                      <input type="text" value={b.address} onChange={(e) => updateDraft(i, { address: e.target.value })} placeholder="Street ZIP" className={pillInput} />
+                      <label className="block text-sm text-[#2D2F33]">{t('fullAddress')}</label>
+                      <input type="text" value={b.address} onChange={(e) => updateDraft(i, { address: e.target.value })} placeholder={t('addressPlaceholder')} className={pillInput} />
                     </div>
                   </div>
                 </div>
@@ -311,11 +325,11 @@ export default function CreateRestaurantModal({
 
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('info')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
-                  <ArrowLeft size={16} />
-                  <span>Back</span>
+              <ArrowLeft size={16} className="rtl:scale-x-[-1]" />
+                  <span>{t('back')}</span>
                 </button>
                 <button type="submit" className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md flex items-center gap-2 transition-all cursor-pointer">
-                  <span>Next Step</span>
+                  <span>{t('nextStep')}</span>
                   <ArrowRight size={18} />
                 </button>
               </div>
@@ -333,11 +347,11 @@ export default function CreateRestaurantModal({
               />
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('branches')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
-                  <ArrowLeft size={16} />
-                  <span>Back</span>
+              <ArrowLeft size={16} className="rtl:scale-x-[-1]" />
+                  <span>{t('back')}</span>
                 </button>
                 <button onClick={handlePlanDone} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all cursor-pointer">
-                  Done
+                  {t('done')}
                 </button>
               </div>
             </div>
@@ -347,23 +361,23 @@ export default function CreateRestaurantModal({
           {step === 'credentials' && (
             <div className="space-y-6">
               <p className="text-center text-[#989898] max-w-xl mx-auto">
-                We&apos;ve automatically generated login credentials for the restaurant owner. Please copy them securely.
+                {t('credentialsDesc')}
               </p>
               <div className="space-y-1.5">
-                <label className="block text-sm text-[#2D2F33]">Email</label>
+                <label className="block text-sm text-[#2D2F33]">{t('email')}</label>
                 <input type="text" readOnly value={credentials.username} placeholder="e.g. example@gmail.com" className={pillInput} />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm text-[#2D2F33]">Temporary Password</label>
+                <label className="block text-sm text-[#2D2F33]">{t('tempPassword')}</label>
                 <input type="text" readOnly value={credentials.temporaryPassword} placeholder="aKOhfyf8qw9r9-" className={pillInput} />
               </div>
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button onClick={handleCopyCredentials} className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all">
                   {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-                  <span>{copied ? 'Copied!' : 'Copy Credentials'}</span>
+                  <span>{copied ? t('copied') : t('copyCredentials')}</span>
                 </button>
                 <button onClick={() => setStep('done')} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all cursor-pointer">
-                  Done
+                  {t('done')}
                 </button>
               </div>
             </div>
@@ -375,16 +389,16 @@ export default function CreateRestaurantModal({
               <span className="mx-auto w-28 h-28 rounded-full bg-[#026F4F] text-white flex items-center justify-center shadow-lg">
                 <BadgeCheck size={56} />
               </span>
-              <h3 className="text-2xl font-semibold text-[#2D2F33]">Restaurant Created!</h3>
+              <h3 className="text-2xl font-semibold text-[#2D2F33]">{t('createdDone')}</h3>
               <p className="text-[#989898] max-w-md mx-auto">
-                {name} has been successfully set up and added to your platform.
+                {t('createdDesc', { name: '\u2066' + name + '\u2069' })}
               </p>
               <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
                 <button onClick={onClose} className="px-10 py-3.5 rounded-full bg-[#F2F2F2] hover:bg-gray-200 text-[#2D2F33] font-medium transition-all min-w-[180px]">
-                  Close
+                  {t('close')}
                 </button>
                 <button onClick={goToRestaurant} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all min-w-[180px]">
-                  View Restaurant
+                  {t('viewRestaurant')}
                 </button>
               </div>
             </div>

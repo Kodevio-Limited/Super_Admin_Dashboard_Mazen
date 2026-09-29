@@ -3,7 +3,9 @@
 import React from 'react';
 import Image from 'next/image';
 import { X, Mail, Phone, Calendar, Clock, Shield, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { AdminUser } from '../../types/admin';
+import { locField } from '@/lib/localize';
 
 interface UserDetailsDrawerProps {
   isOpen: boolean;
@@ -18,20 +20,30 @@ export default function UserDetailsDrawer({
   onClose,
   onDeleteClick,
 }: UserDetailsDrawerProps) {
+  const t = useTranslations('sa.userDrawer');
+  const ts = useTranslations('common.status');
+  const tr = useTranslations('common.roles');
+  const locale = useLocale();
   if (!isOpen || !user) return null;
+  const roleLabel =
+    user.role === 'Super Admin' ? tr('superAdmin')
+    : user.role === 'Restaurant Owner' ? tr('restaurantOwner')
+    : user.role === 'Branch Manager' ? tr('branchManager')
+    : user.role === 'Cashier' ? tr('cashier')
+    : tr('kitchenStaff');
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in" />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex">
+      <div className="fixed inset-y-0 end-0 max-w-full flex">
         {/* Drawer - 619px from Figma #1537:1210 */}
-        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-l-[24px] flex flex-col justify-between p-8 md:p-10 overflow-y-auto animate-in slide-in-from-right duration-300">
+        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-s-[24px] flex flex-col justify-between p-8 md:p-10 overflow-y-auto animate-in slide-in-from-right duration-300">
           <div>
             {/* Header */}
             <div className="flex items-center justify-between pb-6 border-b border-gray-200">
               <h2 className="text-[28px] font-bold text-[#2D2F33]">
-                User Details
+                {t('title')}
               </h2>
               <button
                 onClick={onClose}
@@ -53,11 +65,11 @@ export default function UserDetailsDrawer({
               </div>
               <div className="space-y-1 min-w-0">
                 <h3 className="text-xl font-bold text-[#2D2F33] truncate">
-                  {user.name}
+                  <bdi>{locField(locale, user, 'name')}</bdi>
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="bg-[#026F4F]/10 text-[#026F4F] text-xs font-bold px-2.5 py-1 rounded-md">
-                    {user.role}
+                    {roleLabel}
                   </span>
                   <span
                     className={`text-xs font-bold px-2.5 py-1 rounded-md ${
@@ -68,7 +80,7 @@ export default function UserDetailsDrawer({
                         : 'bg-gray-100 text-gray-700'
                     }`}
                   >
-                    {user.status}
+                    {user.status === 'Active' ? ts('active') : user.status === 'Suspended' ? ts('suspended') : ts('inactive')}
                   </span>
                 </div>
               </div>
@@ -78,33 +90,33 @@ export default function UserDetailsDrawer({
             <div className="mt-6 space-y-4">
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-4">
                 <h4 className="text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Contact & Organization
+                  {t('contactTitle')}
                 </h4>
 
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between py-1 border-b border-gray-100">
                     <span className="text-[#686868] flex items-center gap-2">
                       <Mail size={16} />
-                      Email
+                      {t('email')}
                     </span>
-                    <span className="font-semibold text-[#2D2F33]">{user.email}</span>
+                    <span className="font-semibold text-[#2D2F33]"><bdi dir="ltr">{user.email}</bdi></span>
                   </div>
 
                   <div className="flex items-center justify-between py-1 border-b border-gray-100">
                     <span className="text-[#686868] flex items-center gap-2">
                       <Phone size={16} />
-                      Phone
+                      {t('phone')}
                     </span>
-                    <span className="font-semibold text-[#2D2F33]">{user.phone}</span>
+                    <span className="font-semibold text-[#2D2F33]"><bdi dir="ltr">{user.phone}</bdi></span>
                   </div>
 
                   <div className="flex items-center justify-between py-1 border-b border-gray-100">
                     <span className="text-[#686868] flex items-center gap-2">
                       <Shield size={16} />
-                      Restaurant
+                      {t('restaurant')}
                     </span>
                     <span className="font-semibold text-[#026F4F]">
-                      {user.restaurantName || 'Platform Headquarters'}
+                      {locField(locale, user, 'restaurantName') || t('headquarters')}
                     </span>
                   </div>
 
@@ -112,26 +124,26 @@ export default function UserDetailsDrawer({
                     <div className="flex items-center justify-between py-1 border-b border-gray-100">
                       <span className="text-[#686868] flex items-center gap-2">
                         <Shield size={16} />
-                        Assigned Branch
+                        {t('assignedBranch')}
                       </span>
-                      <span className="font-semibold text-[#2D2F33]">{user.branchName}</span>
+                      <span className="font-semibold text-[#2D2F33]">{locField(locale, user, 'branchName')}</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between py-1 border-b border-gray-100">
                     <span className="text-[#686868] flex items-center gap-2">
                       <Calendar size={16} />
-                      Joined Date
+                      {t('joinedDate')}
                     </span>
-                    <span className="font-semibold text-[#2D2F33]">{user.joinedDate}</span>
+                    <span className="font-semibold text-[#2D2F33]">{locField(locale, user, 'joinedDate')}</span>
                   </div>
 
                   <div className="flex items-center justify-between py-1">
                     <span className="text-[#686868] flex items-center gap-2">
                       <Clock size={16} />
-                      Last Active
+                      {t('lastActive')}
                     </span>
-                    <span className="font-semibold text-[#2D2F33]">{user.lastActive}</span>
+                    <span className="font-semibold text-[#2D2F33]">{locField(locale, user, 'lastActive')}</span>
                   </div>
                 </div>
               </div>
@@ -139,24 +151,24 @@ export default function UserDetailsDrawer({
               {/* Permissions Summary */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-3">
                 <h4 className="text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Assigned Capabilities
+                  {t('capabilitiesTitle')}
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-1.5 text-[#026F4F] bg-green-50 p-2 rounded-lg font-medium">
                     <CheckCircle2 size={15} />
-                    <span>POS Terminal Access</span>
+                    <span>{t('permPos')}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[#026F4F] bg-green-50 p-2 rounded-lg font-medium">
                     <CheckCircle2 size={15} />
-                    <span>KDS Station Control</span>
+                    <span>{t('permKds')}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[#026F4F] bg-green-50 p-2 rounded-lg font-medium">
                     <CheckCircle2 size={15} />
-                    <span>Orders Audit History</span>
+                    <span>{t('permOrders')}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[#026F4F] bg-green-50 p-2 rounded-lg font-medium">
                     <CheckCircle2 size={15} />
-                    <span>Menu Price Management</span>
+                    <span>{t('permMenu')}</span>
                   </div>
                 </div>
               </div>
@@ -173,14 +185,14 @@ export default function UserDetailsDrawer({
               className="px-6 h-14 rounded-full bg-red-50 hover:bg-red-100 text-[#E52B2B] text-sm font-semibold flex items-center gap-2 transition-colors"
             >
               <Trash2 size={16} />
-              <span>Delete User</span>
+              <span>{t('deleteUser')}</span>
             </button>
             <button
               type="button"
               onClick={onClose}
               className="flex-1 h-14 bg-[#026F4F] hover:bg-[#01533B] text-white font-semibold text-base rounded-full shadow-lg transition-all"
             >
-              Close Details
+              {t('closeDetails')}
             </button>
           </div>
         </div>

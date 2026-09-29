@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Calendar, Download, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
 interface ExportLedgerModalProps {
@@ -21,6 +22,7 @@ export default function ExportLedgerModal({
   const [startDate, setStartDate] = useState('2026-08-01');
   const [endDate, setEndDate] = useState('2026-08-30');
   const [downloading, setDownloading] = useState(false);
+  const t = useTranslations('sa.exportLedger');
 
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
@@ -41,7 +43,7 @@ export default function ExportLedgerModal({
       {/* Header */}
       <div className="flex items-center justify-between pb-4">
         <h3 className="text-[27px] font-bold text-[#2D2F33] tracking-tight">
-          Export Ledger
+          {t('title')}
         </h3>
         <button
           onClick={onClose}
@@ -53,14 +55,14 @@ export default function ExportLedgerModal({
 
       {/* Subtitle */}
       <p className="text-[17px] text-[#989898] leading-relaxed mb-8">
-        Select a date range to download your full accounting history as a CSV file.
+        {t('subtitle')}
       </p>
 
       {/* Date Inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-[#686868]">
-            Start Date
+            {t('startDate')}
           </label>
           <div className="relative flex items-center">
             <input
@@ -74,7 +76,7 @@ export default function ExportLedgerModal({
 
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-[#686868]">
-            End Date
+            {t('endDate')}
           </label>
           <div className="relative flex items-center">
             <input
@@ -94,7 +96,7 @@ export default function ExportLedgerModal({
           onClick={onClose}
           className="px-8 h-14 rounded-full bg-[#E9E9E9] hover:bg-gray-300 text-[#2D2F33] font-semibold text-base transition-colors"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           type="button"
@@ -107,7 +109,7 @@ export default function ExportLedgerModal({
           ) : (
             <>
               <Download size={18} />
-              <span>Download CSV</span>
+              <span>{t('downloadCsv')}</span>
             </>
           )}
         </button>
@@ -119,7 +121,7 @@ export default function ExportLedgerModal({
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 right-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-y-0 end-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-s-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

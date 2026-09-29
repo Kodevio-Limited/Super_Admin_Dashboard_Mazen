@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import PlanTierPicker from '../PlanTierPicker';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import { FigmaTier } from '../../data/figmaPlans';
@@ -24,6 +25,7 @@ export default function ManualPlanActivationModal({
 }: ManualPlanActivationModalProps) {
   const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
   const [expiryDate, setExpiryDate] = useState('');
+  const t = useTranslations('sa.planModals');
 
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
@@ -35,10 +37,10 @@ export default function ManualPlanActivationModal({
   const body = (
     <>
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">Manual Activation</h3>
+        <h3 className="font-bold text-[#2D2F33] text-xl sm:text-2xl">{t('manualTitle')}</h3>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('close')}
           className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors"
         >
           <X size={20} />
@@ -46,7 +48,7 @@ export default function ManualPlanActivationModal({
       </div>
 
       <div className="mt-6 flex flex-col items-center gap-3">
-        <p className="text-[#2D2F33]">Set Expiration Date for Manual Activation</p>
+        <p className="text-[#2D2F33]">{t('setExpiry')}</p>
         <label className="relative">
           <input
             type="text"
@@ -56,7 +58,7 @@ export default function ManualPlanActivationModal({
             onFocus={(e) => { e.target.type = 'date'; }}
             className="h-12 w-64 px-5 bg-[#F2F2F2] rounded-full text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30"
           />
-          <Calendar size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-[#686868] pointer-events-none" />
+          <Calendar size={18} className="absolute end-5 top-1/2 -translate-y-1/2 text-[#686868] pointer-events-none" />
         </label>
       </div>
 
@@ -76,13 +78,13 @@ export default function ManualPlanActivationModal({
           onClick={onClose}
           className="flex-1 py-3.5 rounded-full bg-[#F2F2F2] hover:bg-gray-200 text-[#2D2F33] font-medium transition-all"
         >
-          Cancel
+          {t('cancel')}
         </button>
         <button
           onClick={() => onActivate(selectedTier, expiryDate)}
           className="flex-1 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all"
         >
-          Activate Now
+          {t('activateNow')}
         </button>
       </div>
     </>
@@ -92,7 +94,7 @@ export default function ManualPlanActivationModal({
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-        <div className="fixed inset-y-0 right-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-y-0 end-0 w-[min(560px,94vw)] bg-white shadow-2xl rounded-s-3xl overflow-y-auto p-6 sm:p-8 animate-in slide-in-from-right duration-300">
           {body}
         </div>
       </div>

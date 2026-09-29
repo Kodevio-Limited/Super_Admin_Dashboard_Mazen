@@ -1,7 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useLocale } from 'next-intl';
 import { X, Filter, Check, RotateCcw } from 'lucide-react';
+
+const STATUS_AR: Record<string, string> = {
+  Active: 'نشط', Pending: 'قيد الانتظار', Suspended: 'معلّق', Inactive: 'غير نشط',
+};
+
+const PLAN_AR: Record<string, string> = {
+  'Enterprise Plan': 'خطة المؤسسات',
+  'Professional Plan': 'الخطة الاحترافية',
+  'Starter Restaurant': 'مطعم المبتدئ',
+  'Basic Branch Plan': 'خطة الفرع الأساسية',
+};
+
+const DATE_AR: Record<string, string> = {
+  'All Time': 'كل الأوقات',
+  Today: 'اليوم',
+  'This Week': 'هذا الأسبوع',
+  'This Month': 'هذا الشهر',
+  'Last 90 Days': 'آخر 90 يوم',
+  'This Year': 'هذه السنة',
+};
 
 interface FilterDrawerProps {
   isOpen: boolean;
@@ -21,6 +42,8 @@ export default function FilterDrawer({
   const [selectedStatus, setSelectedStatus] = useState<string[]>(['Active']);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState('All Time');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
 
   if (!isOpen) return null;
 
@@ -59,9 +82,9 @@ export default function FilterDrawer({
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in" />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex">
+      <div className="fixed inset-y-0 end-0 max-w-full flex">
         {/* Drawer - 619px from Figma #1535:769 */}
-        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-l-[24px] flex flex-col justify-between p-8 md:p-10 animate-in slide-in-from-right duration-300">
+        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-s-[24px] flex flex-col justify-between p-8 md:p-10 animate-in slide-in-from-right duration-300">
           <div>
             <div className="flex items-center justify-between pb-6 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -69,7 +92,7 @@ export default function FilterDrawer({
                   <Filter size={20} />
                 </div>
                 <h2 className="text-[28px] font-bold text-[#2D2F33]">
-                  Filters
+                  {isAr ? 'عوامل التصفية' : 'Filters'}
                 </h2>
               </div>
               <button
@@ -84,7 +107,7 @@ export default function FilterDrawer({
               {/* Status Filter */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-3">
                 <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Account Status
+                  {isAr ? 'حالة الحساب' : 'Account Status'}
                 </label>
                 <div className="flex flex-wrap gap-2.5">
                   {['Active', 'Pending', 'Suspended', 'Inactive'].map((st) => {
@@ -101,7 +124,7 @@ export default function FilterDrawer({
                         }`}
                       >
                         {active && <Check size={14} />}
-                        <span>{st}</span>
+                        <span>{isAr ? (STATUS_AR[st] ?? st) : st}</span>
                       </button>
                     );
                   })}
@@ -111,7 +134,7 @@ export default function FilterDrawer({
               {/* Plan Tiers */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-3">
                 <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Subscription Plan Tier
+                  {isAr ? 'فئة خطة الاشتراك' : 'Subscription Plan Tier'}
                 </label>
                 <div className="flex flex-wrap gap-2.5">
                   {['Enterprise Plan', 'Professional Plan', 'Starter Restaurant', 'Basic Branch Plan'].map((pl) => {
@@ -128,7 +151,7 @@ export default function FilterDrawer({
                         }`}
                       >
                         {active && <Check size={14} />}
-                        <span>{pl}</span>
+                        <span>{isAr ? (PLAN_AR[pl] ?? pl) : pl}</span>
                       </button>
                     );
                   })}
@@ -138,19 +161,16 @@ export default function FilterDrawer({
               {/* Date Filter */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-3">
                 <label className="block text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                  Registration Timeframe
+                  {isAr ? 'الفترة الزمنية للتسجيل' : 'Registration Timeframe'}
                 </label>
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
                   className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none"
                 >
-                  <option>All Time</option>
-                  <option>Today</option>
-                  <option>This Week</option>
-                  <option>This Month</option>
-                  <option>Last 90 Days</option>
-                  <option>This Year</option>
+                  {['All Time', 'Today', 'This Week', 'This Month', 'Last 90 Days', 'This Year'].map((o) => (
+                    <option key={o} value={o}>{isAr ? (DATE_AR[o] ?? o) : o}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -164,14 +184,14 @@ export default function FilterDrawer({
               className="px-6 h-14 rounded-full border border-gray-300 hover:bg-gray-200 text-sm font-semibold text-[#686868] flex items-center gap-2"
             >
               <RotateCcw size={16} />
-              <span>Reset</span>
+              <span>{isAr ? 'إعادة تعيين' : 'Reset'}</span>
             </button>
             <button
               type="button"
               onClick={handleApply}
               className="flex-1 h-14 bg-[#026F4F] hover:bg-[#01533B] text-white font-semibold text-base rounded-full shadow-lg transition-all"
             >
-              Apply Filters
+              {isAr ? 'تطبيق عوامل التصفية' : 'Apply Filters'}
             </button>
           </div>
         </div>

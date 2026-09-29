@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { X, MapPin, Phone, Mail, User, Users, Store, CheckCircle2, TrendingUp, DollarSign } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Branch } from '../../types/admin';
+import { locField } from '@/lib/localize';
 
 interface BranchDetailsDrawerProps {
   isOpen: boolean;
@@ -17,20 +19,24 @@ export default function BranchDetailsDrawer({
   restaurantName,
   onClose,
 }: BranchDetailsDrawerProps) {
+  const tm = useTranslations('sa.modals');
+  const ts = useTranslations('common.status');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   if (!isOpen || !branch) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in" />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex">
+      <div className="fixed inset-y-0 end-0 max-w-full flex">
         {/* Drawer - 619px from Figma #1867:1032 */}
-        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-l-[24px] flex flex-col justify-between p-8 md:p-10 overflow-y-auto animate-in slide-in-from-right duration-300">
+        <div className="w-screen max-w-[619px] bg-[#F2F2F2] shadow-2xl rounded-s-[24px] flex flex-col justify-between p-8 md:p-10 overflow-y-auto animate-in slide-in-from-right duration-300">
           <div>
             <div className="flex items-center justify-between pb-6 border-b border-gray-200">
               <div>
                 <h2 className="text-[28px] font-bold text-[#2D2F33]">
-                  Branch Details
+                  {isAr ? 'تفاصيل الفرع' : 'Branch Details'}
                 </h2>
                 <p className="text-xs text-[#6E727A] mt-0.5">{restaurantName}</p>
               </div>
@@ -47,31 +53,31 @@ export default function BranchDetailsDrawer({
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <h3 className="text-2xl font-bold text-[#2D2F33]">
-                    {branch.name}
+                    {locField(locale, branch, 'name')}
                   </h3>
                   <div className="flex items-center gap-2 text-xs text-[#686868]">
                     <MapPin size={14} className="text-[#026F4F]" />
-                    <span>{branch.address}</span>
+                    <span>{locField(locale, branch, 'address')}</span>
                   </div>
                 </div>
                 <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
-                  {branch.status}
+                  {branch.status === 'Active' ? ts('active') : ts('inactive')}
                 </span>
               </div>
 
               {/* Quick Metrics */}
               <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100 text-center">
                 <div className="bg-[#F8F9FA] p-3 rounded-xl">
-                  <p className="text-[11px] text-[#989898] font-bold uppercase">Staff Count</p>
+                  <p className="text-[11px] text-[#989898] font-bold uppercase">{isAr ? 'عدد الموظفين' : 'Staff Count'}</p>
                   <p className="text-lg font-bold text-[#2D2F33] mt-0.5">{branch.staffCount}</p>
                 </div>
                 <div className="bg-[#F8F9FA] p-3 rounded-xl">
-                  <p className="text-[11px] text-[#989898] font-bold uppercase">Orders Today</p>
+                  <p className="text-[11px] text-[#989898] font-bold uppercase">{isAr ? 'طلبات اليوم' : 'Orders Today'}</p>
                   <p className="text-lg font-bold text-[#026F4F] mt-0.5">{branch.ordersToday}</p>
                 </div>
                 <div className="bg-[#F8F9FA] p-3 rounded-xl">
-                  <p className="text-[11px] text-[#989898] font-bold uppercase">Revenue Today</p>
-                  <p className="text-lg font-bold text-[#2D2F33] mt-0.5">${branch.revenueToday}</p>
+                  <p className="text-[11px] text-[#989898] font-bold uppercase">{isAr ? 'إيرادات اليوم' : 'Revenue Today'}</p>
+                  <p className="text-lg font-bold text-[#2D2F33] mt-0.5"><bdi dir="ltr">${branch.revenueToday}</bdi></p>
                 </div>
               </div>
             </div>
@@ -79,32 +85,32 @@ export default function BranchDetailsDrawer({
             {/* Management & Contact Information */}
             <div className="mt-6 bg-white rounded-2xl p-6 border border-gray-100 shadow-xs space-y-4">
               <h4 className="text-xs font-bold text-[#2D2F33] uppercase tracking-wider">
-                Branch Manager & Contact
+                {isAr ? 'مدير الفرع والتواصل' : 'Branch Manager & Contact'}
               </h4>
 
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between py-1 border-b border-gray-100">
                   <span className="text-[#686868] flex items-center gap-2">
                     <User size={16} />
-                    Manager Name
+                    {isAr ? 'اسم المدير' : 'Manager Name'}
                   </span>
-                  <span className="font-semibold text-[#2D2F33]">{branch.managerName}</span>
+                  <span className="font-semibold text-[#2D2F33]"><bdi>{locField(locale, branch, 'managerName')}</bdi></span>
                 </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-gray-100">
                   <span className="text-[#686868] flex items-center gap-2">
                     <Mail size={16} />
-                    Manager Email
+                    {isAr ? 'البريد الإلكتروني للمدير' : 'Manager Email'}
                   </span>
-                  <span className="font-semibold text-[#2D2F33]">{branch.managerEmail}</span>
+                  <span className="font-semibold text-[#2D2F33]"><bdi dir="ltr">{branch.managerEmail}</bdi></span>
                 </div>
 
                 <div className="flex items-center justify-between py-1">
                   <span className="text-[#686868] flex items-center gap-2">
                     <Phone size={16} />
-                    Branch Phone
+                    {isAr ? 'هاتف الفرع' : 'Branch Phone'}
                   </span>
-                  <span className="font-semibold text-[#2D2F33]">{branch.phone}</span>
+                  <span className="font-semibold text-[#2D2F33]"><bdi dir="ltr">{branch.phone}</bdi></span>
                 </div>
               </div>
             </div>
@@ -116,7 +122,7 @@ export default function BranchDetailsDrawer({
               onClick={onClose}
               className="w-full h-14 bg-[#026F4F] hover:bg-[#01533B] text-white font-semibold text-base rounded-full shadow-lg transition-all"
             >
-              Close
+              {tm('close')}
             </button>
           </div>
         </div>

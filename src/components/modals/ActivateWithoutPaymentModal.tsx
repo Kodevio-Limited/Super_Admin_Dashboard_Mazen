@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 import { X, Check, Gift, Calendar, AlertCircle } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { Restaurant } from '../../types/admin';
+import { locField } from '../../lib/localize';
+
+const REASONS = [
+  { en: 'Promotional / Partner Onboarding Trial', ar: 'تجربة ترويجية / تأهيل شريك' },
+  { en: 'VIP Franchise Beta Tester', ar: 'مختبِر تجريبي لامتياز VIP' },
+  { en: 'Executive Comp Access', ar: 'وصول مجاني تنفيذي' },
+  { en: 'Payment Dispute / Grace Period', ar: 'نزاع دفع / فترة سماح' },
+];
 
 interface ActivateWithoutPaymentModalProps {
   isOpen: boolean;
@@ -19,6 +28,12 @@ export default function ActivateWithoutPaymentModal({
 }: ActivateWithoutPaymentModalProps) {
   const [expiryDate, setExpiryDate] = useState('2026-12-31');
   const [reason, setReason] = useState('Promotional / Partner Onboarding Trial');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const reasonLabel = (en: string) => {
+    const f = REASONS.find((r) => r.en === en);
+    return isAr && f ? f.ar : en;
+  };
 
   if (!isOpen || !restaurant) return null;
 
@@ -41,10 +56,10 @@ export default function ActivateWithoutPaymentModal({
             </div>
             <div>
               <h3 className="text-2xl font-bold text-[#2D2F33]">
-                Activate Without Payment
+                {isAr ? 'تفعيل بدون دفع' : 'Activate Without Payment'}
               </h3>
               <p className="text-xs text-[#6E727A]">
-                Grant zero-cost complimentary trial or promotional access
+                {isAr ? 'منح تجربة مجانية أو وصول ترويجي بدون تكلفة' : 'Grant zero-cost complimentary trial or promotional access'}
               </p>
             </div>
           </div>
@@ -57,12 +72,12 @@ export default function ActivateWithoutPaymentModal({
           <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 flex items-start gap-3">
             <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-amber-800 leading-relaxed">
-              <strong>Admin Override:</strong> This will bypass automated billing and provision full SaaS features for <strong>{restaurant.name}</strong> until the selected expiry date.
+              <strong>{isAr ? 'تجاوز المشرف:' : 'Admin Override:'}</strong>{' '}{isAr ? 'سيؤدي هذا إلى تجاوز الفوترة التلقائية وتوفير كامل الميزات لـ' : 'This will bypass automated billing and provision full SaaS features for'}{' '}<strong><bdi>{locField(locale, restaurant, 'name')}</bdi></strong>{' '}{isAr ? 'حتى تاريخ الانتهاء المحدد.' : 'until the selected expiry date.'}
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Access Expiration Date *</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'تاريخ انتهاء الوصول *' : 'Access Expiration Date *'}</label>
             <div className="relative flex items-center">
               <input
                 type="date"
@@ -75,16 +90,15 @@ export default function ActivateWithoutPaymentModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Reason / Justification *</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{isAr ? 'السبب / المبرر *' : 'Reason / Justification *'}</label>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none"
             >
-              <option>Promotional / Partner Onboarding Trial</option>
-              <option>VIP Franchise Beta Tester</option>
-              <option>Executive Comp Access</option>
-              <option>Payment Dispute / Grace Period</option>
+              {REASONS.map((r) => (
+                <option key={r.en} value={r.en}>{reasonLabel(r.en)}</option>
+              ))}
             </select>
           </div>
 
@@ -94,13 +108,13 @@ export default function ActivateWithoutPaymentModal({
               onClick={onClose}
               className="px-6 py-2.5 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50"
             >
-              Cancel
+{isAr ? 'إلغاء' : 'Cancel'}
             </button>
             <button
               type="submit"
               className="px-8 py-2.5 rounded-full bg-[#158F15] hover:bg-[#127a12] text-white text-sm font-semibold shadow-md flex items-center gap-2"
             >
-              <span>Grant Complimentary Access</span>
+              <span>{isAr ? 'منح وصول مجاني' : 'Grant Complimentary Access'}</span>
               <Check size={16} />
             </button>
           </div>

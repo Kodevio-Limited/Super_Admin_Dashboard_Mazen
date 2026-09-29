@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { X, Check, ShieldCheck, Calendar, CreditCard } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Restaurant, SubscriptionPlan } from '../../types/admin';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
+import { locField } from '../../lib/localize';
 
 interface ManualActivationModalProps {
   isOpen: boolean;
@@ -22,8 +24,17 @@ export default function ManualActivationModal({
 }: ManualActivationModalProps) {
   const [selectedPlanId, setSelectedPlanId] = useState(plans[0]?.id || '');
   const [duration, setDuration] = useState('12');
-  const [paymentMode, setPaymentMode] = useState('Wire / Bank Transfer');
-  const [note, setNote] = useState('Super admin direct enterprise activation');
+  const t = useTranslations('sa.planModals');
+  const locale = useLocale();
+  const [paymentMode, setPaymentMode] = useState(t('paymentDefault'));
+  const [note, setNote] = useState(t('noteDefault'));
+  const durations = [
+    { value: '1', label: t('durations.m1') },
+    { value: '3', label: t('durations.m3') },
+    { value: '6', label: t('durations.m6') },
+    { value: '12', label: t('durations.m12') },
+    { value: '24', label: t('durations.m24') },
+  ];
 
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
@@ -39,7 +50,7 @@ export default function ManualActivationModal({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div onClick={onClose} className="absolute inset-0 bg-black/50 transition-opacity animate-in fade-in" />
-      <div className="fixed inset-y-0 right-0 w-[min(600px,94vw)] bg-white shadow-2xl rounded-l-3xl overflow-y-auto animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-y-0 end-0 w-[min(600px,94vw)] bg-white shadow-2xl rounded-s-3xl overflow-y-auto animate-in slide-in-from-right duration-300">
         <div className="p-6 sm:p-8">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -48,10 +59,10 @@ export default function ManualActivationModal({
             </div>
             <div>
               <h3 className="text-2xl font-bold text-[#2D2F33]">
-                Manual Plan Activation
+                {t('manualPlanTitle')}
               </h3>
               <p className="text-xs text-[#6E727A]">
-                Manually grant or extend subscription access for <strong>{restaurant.name}</strong>
+                {t('manualGrant')} <strong><bdi>{locField(locale, restaurant, 'name')}</bdi></strong>
               </p>
             </div>
           </div>
@@ -62,18 +73,18 @@ export default function ManualActivationModal({
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-6">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Target Restaurant</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{t('targetRestaurant')}</label>
             <input
               type="text"
               disabled
-              value={`${restaurant.name} (${restaurant.ownerName})`}
+              value={`${locField(locale, restaurant, 'name')} (${restaurant.ownerName})`}
               className="w-full h-12 px-4 bg-gray-100 border border-gray-200 rounded-xl text-sm font-semibold text-[#2D2F33]"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Select Plan Tier *</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{t('selectPlanTier')}</label>
               <select
                 value={selectedPlanId}
                 onChange={(e) => setSelectedPlanId(e.target.value)}
@@ -81,42 +92,40 @@ export default function ManualActivationModal({
               >
                 {plans.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.type}) - ${p.priceMonthly}/mo
+                    {locField(locale, p, 'name')} ({p.type === 'Restaurant' ? t('typeRestaurant') : t('typeBranch')}) - ${p.priceMonthly}{t('perMonthSuffix')}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#2D2F33] uppercase">Activation Duration *</label>
+              <label className="block text-xs font-bold text-[#2D2F33] uppercase">{t('activationDuration')}</label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none"
               >
-                <option value="1">1 Month</option>
-                <option value="3">3 Months (Quarterly)</option>
-                <option value="6">6 Months (Semi-Annual)</option>
-                <option value="12">12 Months (1 Year)</option>
-                <option value="24">24 Months (2 Years)</option>
+                {durations.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
               </select>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Payment Reference / Mode *</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{t('paymentRef')}</label>
             <input
               type="text"
               required
               value={paymentMode}
               onChange={(e) => setPaymentMode(e.target.value)}
-              placeholder="e.g. Invoice #2026-08, Offline Cash, Corporate Agreement"
+              placeholder={t('paymentPlaceholder')}
               className="w-full h-12 px-4 bg-[#F8F9FA] border border-gray-200 rounded-xl text-sm focus:border-[#026F4F] focus:outline-none"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#2D2F33] uppercase">Audit Notes</label>
+            <label className="block text-xs font-bold text-[#2D2F33] uppercase">{t('auditNotes')}</label>
             <textarea
               rows={2}
               value={note}
@@ -131,13 +140,13 @@ export default function ManualActivationModal({
               onClick={onClose}
               className="px-6 py-2.5 rounded-full border border-gray-200 text-sm font-semibold text-[#686868] hover:bg-gray-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="px-8 py-2.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold shadow-md flex items-center gap-2"
             >
-              <span>Activate Plan</span>
+              <span>{t('activatePlan')}</span>
               <Check size={16} />
             </button>
           </div>

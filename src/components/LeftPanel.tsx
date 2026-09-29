@@ -37,7 +37,7 @@ export default function LeftPanel({
         role="dialog"
         aria-modal="true"
         aria-label={labelledBy}
-        className={`fixed inset-y-0 ${right ? 'right-0 rounded-l-3xl animate-in slide-in-from-right' : 'left-0 rounded-r-3xl animate-in slide-in-from-left'} ${widthClass} ${tone === 'gray' ? 'bg-[#F2F2F2]' : 'bg-white'} shadow-2xl overflow-y-auto p-6 sm:p-8 duration-300`}
+        className={`fixed inset-y-0 ${right ? 'end-0 rounded-s-3xl animate-in slide-in-from-right' : 'start-0 rounded-e-3xl animate-in slide-in-from-left'} ${widthClass} ${tone === 'gray' ? 'bg-[#F2F2F2]' : 'bg-white'} shadow-2xl overflow-y-auto p-6 sm:p-8 duration-300`}
       >
         {children}
       </div>

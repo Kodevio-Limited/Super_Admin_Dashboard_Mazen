@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -21,7 +22,7 @@
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-satoshi: 'Satoshi', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-poppins: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -52,6 +53,26 @@ body {
   font-family: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
+html[lang="ar"] {
+  font-family: 'Noto Sans Arabic', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html[lang="ar"] body {
+  line-height: 1.7;
+}
+
+html[lang="ar"] * {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-style: normal !important;
+  font-family: 'Noto Sans Arabic', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html[lang="ar"] .font-satoshi,
+html[lang="ar"] .font-poppins {
+  font-family: 'Noto Sans Arabic', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -69,4 +90,11 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #989898;
+}
+
+/* ─── RTL icon flips ──────────────────────────────────────────────────────── */
+/* Directional icons that must mirror in RTL.
+   Applied via [dir="rtl"] so it's automatic when html dir switches. */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
 }

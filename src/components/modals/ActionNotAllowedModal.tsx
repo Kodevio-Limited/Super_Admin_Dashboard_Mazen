@@ -11,6 +11,8 @@ interface ActionNotAllowedModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCancelRestaurantPlan?: () => void;
+  // Excludes just this branch from the restaurant plan (Bug-50). Hidden when absent.
+  onExcludeBranch?: () => void;
   // Which branch action was blocked — customizes the description text.
   action?: BlockedBranchAction;
   // Figma flow presents this as a right slide-in panel; other pages keep center.
@@ -21,6 +23,7 @@ export default function ActionNotAllowedModal({
   isOpen,
   onClose,
   onCancelRestaurantPlan,
+  onExcludeBranch,
   action = 'modify',
   placement = 'right',
 }: ActionNotAllowedModalProps) {
@@ -41,6 +44,11 @@ export default function ActionNotAllowedModal({
 
   const handleCancelPlan = () => {
     if (onCancelRestaurantPlan) onCancelRestaurantPlan();
+    onClose();
+  };
+
+  const handleExcludeBranch = () => {
+    if (onExcludeBranch) onExcludeBranch();
     onClose();
   };
 
@@ -75,6 +83,15 @@ export default function ActionNotAllowedModal({
         >
           {t('cancelRestaurantPlan')}
         </button>
+        {onExcludeBranch && (
+          <button
+            type="button"
+            onClick={handleExcludeBranch}
+            className="w-full h-[59px] rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-semibold text-[17px] shadow-[0px_4px_16px_rgba(2,111,79,0.25)] transition-all cursor-pointer"
+          >
+            {t('excludeBranchOnly')}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}

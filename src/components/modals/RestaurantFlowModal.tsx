@@ -156,6 +156,36 @@ function BranchDetailsPanel({
   // log payment, activate) while an active overarching restaurant plan exists
   // — otherwise Figma 1867:1718 (Action Not Allowed) applies, customized per
   // attempted action.
+  // Excluding drops the branch to "No Active Plan" so it can hold its own
+  // individual plan; re-including pulls it back under the restaurant plan and
+  // cancels that individual branch plan (Bug-50).
+  const restaurantHasPlan =
+    restaurant.status === 'Active' && restaurant.planName !== 'No Active Plan';
+
+  const handleExcludeBranch = () => {
+    onPatchBranch({
+      planName: 'No Active Plan',
+      planName_ar: 'لا توجد خطة نشطة',
+      monthlyFee: 0,
+      planExpiry: '—',
+      planExpiry_ar: '—',
+    });
+    setSubNote(t('branchExcluded'));
+    setBlockedAction(null);
+  };
+
+  const handleIncludeBranch = () => {
+    const tier = restaurant.planName.replace(/ Plan$/, '') || 'Enterprise';
+    onPatchBranch({
+      planName: `${tier} (Covered by Restaurant Plan)`,
+      planName_ar: `${tierArLabel(tier)} (مشمولة بخطة المطعم)`,
+      monthlyFee: 0,
+      planExpiry: restaurant.planExpiry,
+      planExpiry_ar: restaurant.planExpiry_ar,
+    });
+    setSubNote(t('branchIncluded'));
+  };
+
   const covered =
     restaurant.status === 'Active' &&
     restaurant.planName !== 'No Active Plan' &&
@@ -465,6 +495,23 @@ function BranchDetailsPanel({
             )}
           </div>
 
+          {/* Re-include an excluded branch under the restaurant plan —
+              cancels its individual branch plan (Bug-50) */}
+          {!covered && restaurantHasPlan && (
+            <div className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[17px] font-medium text-[#2D2F33]">{t('includeTitle')}</p>
+                <p className="text-sm text-[#989898] mt-1">{t('includeDesc')}</p>
+              </div>
+              <button
+                onClick={handleIncludeBranch}
+                className="px-5 py-2.5 rounded-lg bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold transition-all flex-shrink-0"
+              >
+                {t('includeBranch')}
+              </button>
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl p-5 space-y-3">
             <h3 className="text-lg font-medium text-[#2D2F33]">{t('offlineManagement')}</h3>
             <p className="text-sm text-[#989898]">
@@ -542,6 +589,7 @@ function BranchDetailsPanel({
           setSubNote(t('restaurantPlanCancelled'));
           setBlockedAction(null);
         }}
+        onExcludeBranch={handleExcludeBranch}
       />
 
       {/* Manual Activation as left slide-in (Figma 1864:870) */}

@@ -507,6 +507,11 @@
       "planActivatedManual": "{tier} plan activated manually.",
       "offlinePaymentLogged": "Offline payment logged ({plan}, {months} mo).",
       "restaurantPlanCancelled": "Restaurant plan cancelled — branch plans are now individual.",
+      "branchExcluded": "Branch excluded from the Restaurant Plan — assign it an individual plan.",
+      "includeTitle": "Include in Restaurant Plan",
+      "includeDesc": "Add this branch back under the overarching Restaurant Plan. Its individual branch plan will be cancelled.",
+      "includeBranch": "Include Branch",
+      "branchIncluded": "Branch added back under the Restaurant Plan — its individual plan was cancelled.",
       "offlineManagement": "Offline Management",
       "offlineManagementDesc": "Manage payments outside the app. Log a received payment out side the app.",
       "logPayment": "Log Payment",
@@ -564,6 +569,7 @@
       "notAllowedDescLogPayment": "You are attempting to log a payment for this branch, but you currently have an active Restaurant Plan covering all branches. To manage individual branch payments, you must first cancel your overarching Restaurant Plan.",
       "notAllowedDescActivate": "You are attempting to activate this branch without payment, but you currently have an active Restaurant Plan covering all branches. To manage individual branch activations, you must first cancel your overarching Restaurant Plan.",
       "cancelRestaurantPlan": "Cancel Restaurant Plan",
+      "excludeBranchOnly": "Cancel For This Branch Only",
       "keepCurrentPlan": "Keep Current Plan"
     },
     "planForm": {

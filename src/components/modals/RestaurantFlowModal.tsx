@@ -687,6 +687,47 @@ export default function RestaurantFlowModal({
   const [isModifyOpen, setIsModifyOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isLogPaymentOpen, setIsLogPaymentOpen] = useState(false);
+  // After subscribing to a restaurant plan, offer to pull individually-planned
+  // branches under it (Bug-51). Null = no prompt.
+  const [includePrompt, setIncludePrompt] = useState<{
+    tier: string;
+    expiry: string;
+    expiryAr: string;
+    ids: string[];
+  } | null>(null);
+
+  // Open the include-branches prompt when the restaurant holds a plan while
+  // some branches still carry their own individual (non-covered) plans.
+  const afterRestaurantSubscribe = (np: { planName: string; planExpiry?: string; planExpiryAr?: string }) => {
+    const individual = restaurant.branches.filter((b) => !/covered/i.test(b.planName));
+    if (individual.length === 0) return;
+    setIncludePrompt({
+      tier: np.planName.replace(/ Plan$/, '') || 'Enterprise',
+      expiry: np.planExpiry ?? restaurant.planExpiry,
+      expiryAr: np.planExpiryAr ?? restaurant.planExpiry_ar ?? restaurant.planExpiry,
+      ids: individual.map((b) => b.id),
+    });
+  };
+
+  const confirmIncludeBranches = () => {
+    if (!includePrompt) return;
+    patchRestaurant({
+      branches: restaurant.branches.map((b) =>
+        includePrompt.ids.includes(b.id)
+          ? {
+              ...b,
+              planName: `${includePrompt.tier} (Covered by Restaurant Plan)`,
+              planName_ar: `${tierArLabel(includePrompt.tier)} (مشمولة بخطة المطعم)`,
+              monthlyFee: 0,
+              planExpiry: includePrompt.expiry,
+              planExpiry_ar: includePrompt.expiryAr,
+            }
+          : b,
+      ),
+    });
+    setRenewalNote(t('branchesIncluded', { count: includePrompt.ids.length }));
+    setIncludePrompt(null);
+  };
 
   // Branch form state
   const editingBranch =
@@ -1351,14 +1392,16 @@ export default function RestaurantFlowModal({
         isOpen={isModifyOpen}
         onClose={() => setIsModifyOpen(false)}
         onActivate={(tier: FigmaTier, billing: FigmaBillingCycle, price: number) => {
+          const planName = `${tier} Plan`;
           patchRestaurant({
-            planName: `${tier} Plan`,
-            planName_ar: planNameAr(`${tier} Plan`),
+            planName,
+            planName_ar: planNameAr(planName),
             planBilling: billing,
             planPrice: price,
           });
           setRenewalNote(t('planChanged', { tier: tierName(tier), billing: cycleName(billing) }));
           setIsModifyOpen(false);
+          afterRestaurantSubscribe({ planName });
         }}
       />
 
@@ -1368,23 +1411,27 @@ export default function RestaurantFlowModal({
         onClose={() => setIsManualOpen(false)}
         onActivate={(tier: FigmaTier, expiryDate: string) => {
           const monthly = FIGMA_TIERS.find((t) => t.tier === tier)!.monthlyPrice;
+          const planName = `${tier} Plan`;
+          const newExpiry = expiryDate
+            ? new Date(expiryDate + 'T00:00:00').toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : restaurant.planExpiry;
           patchRestaurant({
-            planName: `${tier} Plan`,
-            planName_ar: planNameAr(`${tier} Plan`),
+            planName,
+            planName_ar: planNameAr(planName),
             planBilling: 'Monthly',
             planPrice: monthly,
-            planExpiry: expiryDate
-              ? new Date(expiryDate + 'T00:00:00').toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
-              : restaurant.planExpiry,
+            planExpiry: newExpiry,
+            planExpiry_ar: toArDate(newExpiry),
             status: 'Active',
           });
           setIsActive(true);
           setRenewalNote(t('planActivatedManual', { tier: tierName(tier) }));
           setIsManualOpen(false);
+          afterRestaurantSubscribe({ planName, planExpiry: newExpiry, planExpiryAr: toArDate(newExpiry) });
         }}
       />
 
@@ -1404,10 +1451,86 @@ export default function RestaurantFlowModal({
               planPrice: plan.priceMonthly * months,
             });
             setRenewalNote(t('offlinePaymentLogged', { plan: locField(locale, plan, 'name'), months }));
+            afterRestaurantSubscribe({ planName: plan.name });
           }
           setIsLogPaymentOpen(false);
         }}
       />
+
+      {/* Include-branches prompt (Bug-51): after subscribing, offer to pull
+          individually-planned branches under the restaurant plan */}
+      {includePrompt && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div onClick={() => setIncludePrompt(null)} className="fixed inset-0 bg-black/50 transition-opacity" />
+          <div className="relative bg-white w-full max-w-[520px] rounded-[22px] p-8 shadow-2xl border border-gray-100 z-10 animate-in zoom-in-95 duration-200">
+            <h3 className="text-[22px] font-bold text-[#2D2F33] tracking-tight">
+              {t('includeBranchesTitle')}
+            </h3>
+            <p className="text-[15px] text-[#989898] leading-relaxed mt-2">
+              {t('includeBranchesDesc')}
+            </p>
+            <div className="mt-5 max-h-[240px] overflow-y-auto space-y-2">
+              {restaurant.branches
+                .filter((b) => !/covered/i.test(b.planName))
+                .map((b) => {
+                  const checked = includePrompt.ids.includes(b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() =>
+                        setIncludePrompt((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                ids: checked
+                                  ? prev.ids.filter((id) => id !== b.id)
+                                  : [...prev.ids, b.id],
+                              }
+                            : prev,
+                        )
+                      }
+                      className="w-full flex items-center gap-3 rounded-2xl border border-[#E9E9E9] px-4 py-3 text-start transition-colors hover:border-[#026F4F]"
+                    >
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                          checked ? 'border-[#026F4F] bg-[#026F4F] text-white' : 'border-[#B9B9B9] bg-white text-transparent'
+                        }`}
+                      >
+                        <Check size={14} strokeWidth={3} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-medium text-[#2D2F33]">
+                          {locField(locale, b, 'name')}
+                        </span>
+                        <span className="block truncate text-xs text-[#989898]">
+                          {locField(locale, b, 'planName')}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setIncludePrompt(null)}
+                className="h-[52px] rounded-full bg-[#E9E9E9] hover:bg-gray-300 text-[#2D2F33] font-semibold text-[15px] transition-colors"
+              >
+                {t('skip')}
+              </button>
+              <button
+                type="button"
+                onClick={confirmIncludeBranches}
+                disabled={includePrompt.ids.length === 0}
+                className="h-[52px] rounded-full bg-[#026F4F] hover:bg-[#01533B] disabled:opacity-40 text-white font-semibold text-[15px] transition-all"
+              >
+                {t('includeSelected', { count: includePrompt.ids.length })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </LeftPanel>
   );
 }

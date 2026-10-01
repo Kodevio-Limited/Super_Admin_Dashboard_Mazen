@@ -103,7 +103,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
           <span>{t('signOut')}</span>
         </Link>
         <div className="mt-3">
-          <LanguageToggle />
+          <LanguageToggle className="w-fit" />
         </div>
       </div>
     </>

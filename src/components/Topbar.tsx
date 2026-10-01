@@ -4,7 +4,6 @@ import React from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Search, Bell } from 'lucide-react';
-import { LanguageToggle } from './LanguageToggle';
 
 interface TopbarProps {
   // Kept so existing pages don't change; the Figma topbar (frame 1224:1934)
@@ -31,9 +30,8 @@ export default function Topbar({ title: _title, subtitle: _subtitle }: TopbarPro
         />
       </div>
 
-      {/* Right: Language + Notification + Profile */}
+      {/* Right: Notification + Profile (language lives in the sidebar) */}
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-        <LanguageToggle />
         <button
           title={t('notifications')}
           aria-label={t('notifications')}

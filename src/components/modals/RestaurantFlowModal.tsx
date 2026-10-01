@@ -22,7 +22,7 @@ import LeftPanel from '../LeftPanel';
 import ModifyPlanModal from './ModifyPlanModal';
 import ManualPlanActivationModal from './ManualPlanActivationModal';
 import ManualActivationModal from './ManualActivationModal';
-import ActionNotAllowedModal from './ActionNotAllowedModal';
+import ActionNotAllowedModal, { BlockedBranchAction } from './ActionNotAllowedModal';
 
 // Source of truth: Figma frames 1862:762 (Overview), 1465:821 (Branches),
 // 1508:1274 (Add branch), 1511:1544 (Main branch), 1512:1785 (Subscription),
@@ -143,15 +143,19 @@ function BranchDetailsPanel({
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [isActive, setIsActive] = useState(branch.status === 'Active');
 
-  const [isBlockedOpen, setIsBlockedOpen] = useState(false);
+  // Which branch action is currently blocked by the overarching restaurant
+  // plan (null = none). Drives the Action Not Allowed modal + its text.
+  const [blockedAction, setBlockedAction] = useState<BlockedBranchAction | null>(null);
   const [isModifyOpen, setIsModifyOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [subNote, setSubNote] = useState('');
   const [cancelArmed, setCancelArmed] = useState(false);
 
-  // A branch plan can only be modified directly when it is NOT covered by an
-  // active overarching restaurant plan — otherwise Figma 1867:1718 applies.
+  // A covered branch plan cannot be touched directly (modify, cancel renewal,
+  // log payment, activate) while an active overarching restaurant plan exists
+  // — otherwise Figma 1867:1718 (Action Not Allowed) applies, customized per
+  // attempted action.
   const covered =
     restaurant.status === 'Active' &&
     restaurant.planName !== 'No Active Plan' &&
@@ -424,7 +428,7 @@ function BranchDetailsPanel({
             <div className="border-t border-dashed border-white/25 my-5" />
             <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3">
               <button
-                onClick={() => (covered ? setIsBlockedOpen(true) : setIsModifyOpen(true))}
+                onClick={() => (covered ? setBlockedAction('modify') : setIsModifyOpen(true))}
                 className="py-2.5 rounded-lg bg-white text-[#2D2F33] text-sm font-semibold hover:bg-gray-100 transition-colors"
               >
                 {t('modifyPlan')}
@@ -442,6 +446,7 @@ function BranchDetailsPanel({
               </button>
               <button
                 onClick={() => {
+                  if (covered) { setBlockedAction('cancelRenewal'); return; }
                   if (cancelArmed) {
                     setSubNote(t('autoRenewalCancelled'));
                     setCancelArmed(false);
@@ -466,7 +471,7 @@ function BranchDetailsPanel({
               {t('offlineManagementDesc')}
             </p>
             <button
-              onClick={() => setIsLogOpen(true)}
+              onClick={() => (covered ? setBlockedAction('logPayment') : setIsLogOpen(true))}
               className="w-full py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium transition-all"
             >
               {t('logPayment')}
@@ -476,7 +481,7 @@ function BranchDetailsPanel({
           <div className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4">
             <p className="text-[17px] font-medium text-[#2D2F33]">{t('activateWithoutPayment')}</p>
             <button
-              onClick={() => setIsManualOpen(true)}
+              onClick={() => (covered ? setBlockedAction('activate') : setIsManualOpen(true))}
               className="px-5 py-2.5 rounded-lg bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-semibold transition-all flex-shrink-0"
             >
               {t('activateManually')}
@@ -528,13 +533,14 @@ function BranchDetailsPanel({
 
       {/* Action Not Allowed as left slide-in (Figma 1867:1718) */}
       <ActionNotAllowedModal
-        isOpen={isBlockedOpen}
+        isOpen={blockedAction !== null}
         placement="right"
-        onClose={() => setIsBlockedOpen(false)}
+        action={blockedAction ?? 'modify'}
+        onClose={() => setBlockedAction(null)}
         onCancelRestaurantPlan={() => {
           onPatchRestaurant({ planName: 'No Active Plan', planName_ar: 'لا توجد خطة نشطة', planPrice: 0, planExpiry: '—' });
           setSubNote(t('restaurantPlanCancelled'));
-          setIsBlockedOpen(false);
+          setBlockedAction(null);
         }}
       />
 

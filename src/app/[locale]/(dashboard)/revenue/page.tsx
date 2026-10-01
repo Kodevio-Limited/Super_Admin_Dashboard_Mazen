@@ -54,10 +54,25 @@ const REVENUE_OVER_TIME = [
 ];
 
 // --- Revenue by plan (bar heights approximated from Figma; no data table) ---
+// Custom covers revenue from custom-built plans (Subscriptions → plan form).
 const REVENUE_BY_PLAN = [
   { plan: 'Basic', value: 19, color: '#B9B9B9' },
   { plan: 'Pro', value: 26, color: '#026F4F' },
   { plan: 'Enterprise', value: 27, color: '#5B9BF5' },
+  { plan: 'Custom', value: 12, color: '#B93DBE' },
+];
+
+// --- Subscriptions expiring soon, per month (counts) ---
+const EXPIRING_OVER_TIME = [
+  { month: 'Jan', value: 4 },
+  { month: 'Feb', value: 6 },
+  { month: 'Mar', value: 5 },
+  { month: 'Apr', value: 8 },
+  { month: 'May', value: 7 },
+  { month: 'Jun', value: 10 },
+  { month: 'Jul', value: 9 },
+  { month: 'Aug', value: 12 },
+  { month: 'Sep', value: 14 },
 ];
 
 // --- Detailed Report (verbatim Figma rows + parallel Arabic fields) ---
@@ -86,7 +101,7 @@ const MONTH_AR: Record<string, string> = {
 };
 
 const PLAN_AR: Record<string, string> = {
-  Basic: 'الأساسية', Pro: 'الاحترافية', Enterprise: 'المؤسسية',
+  Basic: 'الأساسية', Pro: 'الاحترافية', Enterprise: 'المؤسسية', Custom: 'مخصصة',
 };
 
 const REVENUE_SNAPSHOT = [
@@ -220,7 +235,7 @@ export default function RevenueReportsPage() {
         </div>
 
         {/* Charts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl p-[22px]">
             <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('revenueChart')}</h3>
             <div className="h-[273px] w-full mt-4">
@@ -288,6 +303,20 @@ export default function RevenueReportsPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-[22px] lg:col-span-2 xl:col-span-1">
+            <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('expiringChart')}</h3>
+            <div className="h-[273px] w-full mt-4">
+              <SelectableAreaChart
+                data={EXPIRING_OVER_TIME.map((d) => ({ label: isAr ? (MONTH_AR[d.month] ?? d.month) : d.month, value: d.value }))}
+                formatValue={(v) => `${v}`}
+                yDomain={[0, 15]}
+                yTicks={[0, 5, 10, 15]}
+                formatTick={(v) => `${v}`}
+                gradientId="expiringFill"
+              />
             </div>
           </div>
         </div>

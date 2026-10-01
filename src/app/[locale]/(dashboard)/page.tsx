@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import Topbar from '../../../components/Topbar';
 import {
   Store, Receipt, UtensilsCrossed, Armchair,
-  Clock, TrendingUp, ChevronDown,
+  Clock, TrendingUp, ChevronDown, ArrowRight,
 } from 'lucide-react';
 import SelectableAreaChart from '../../../components/SelectableAreaChart';
 
@@ -72,7 +73,7 @@ export default function SuperAdminDashboardPage() {
       delta: t('deltaLastMonth', { value: '12.5%' }), icon: UtensilsCrossed,
     },
     { key: 'activeUsersLive',         value: '342', icon: Armchair },
-    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock },
+    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock, viewHref: '/subscriptions' as const },
   ];
 
   return (
@@ -101,6 +102,15 @@ export default function SuperAdminDashboardPage() {
                 ) : (
                   <p className="text-[#989898] text-base">{'note' in card ? card.note : ''}</p>
                 )}
+                {'viewHref' in card && card.viewHref ? (
+                  <Link
+                    href={card.viewHref}
+                    className="inline-flex w-fit self-end items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
+                  >
+                    {t('view')}
+                    <ArrowRight size={15} className="rtl:scale-x-[-1]" />
+                  </Link>
+                ) : null}
               </div>
             );
           })}

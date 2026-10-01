@@ -5,10 +5,14 @@ import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 
+export type BlockedBranchAction = 'modify' | 'cancelRenewal' | 'logPayment' | 'activate';
+
 interface ActionNotAllowedModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCancelRestaurantPlan?: () => void;
+  // Which branch action was blocked — customizes the description text.
+  action?: BlockedBranchAction;
   // Figma flow presents this as a right slide-in panel; other pages keep center.
   placement?: 'center' | 'right';
 }
@@ -17,6 +21,7 @@ export default function ActionNotAllowedModal({
   isOpen,
   onClose,
   onCancelRestaurantPlan,
+  action = 'modify',
   placement = 'right',
 }: ActionNotAllowedModalProps) {
   useBodyScrollLock(isOpen);
@@ -24,6 +29,15 @@ export default function ActionNotAllowedModal({
   const t = useTranslations('sa.planModals');
 
   if (!isOpen) return null;
+
+  const descKey =
+    action === 'cancelRenewal'
+      ? 'notAllowedDescCancel'
+      : action === 'logPayment'
+        ? 'notAllowedDescLogPayment'
+        : action === 'activate'
+          ? 'notAllowedDescActivate'
+          : 'notAllowedDesc';
 
   const handleCancelPlan = () => {
     if (onCancelRestaurantPlan) onCancelRestaurantPlan();
@@ -50,7 +64,7 @@ export default function ActionNotAllowedModal({
       </h3>
 
       <p className="text-[16px] text-[#989898] leading-relaxed max-w-sm mx-auto mb-8 whitespace-pre-line">
-        {t('notAllowedDesc')}
+        {t(descKey)}
       </p>
 
       <div className="flex flex-col gap-3">

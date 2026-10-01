@@ -86,6 +86,12 @@ export function formatMonthly(value: number): string {
 export interface CustomPlan {
   id: string;
   name: string;
+  /** Arabic plan name (Bug-53). */
+  nameAr?: string;
+  /** Plan description (Bug-53). */
+  description?: string;
+  /** Arabic plan description (Bug-53). */
+  descriptionAr?: string;
   kind: 'Restaurant' | 'Branch';
   prices: { monthly: number; yearly: number; quarterly: number; semi: number };
   maxTables?: number;
@@ -94,6 +100,9 @@ export interface CustomPlan {
   maxOrders?: number;
   modules: string[];
   isPrivate?: boolean;
+  /** Hidden plans are only visible to super admins — customers can neither
+      see nor subscribe to them from their dashboards (Bug-52). */
+  hidden?: boolean;
 }
 
 // Arabic display labels for custom-plan module keys (stored in English).

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, Search, ListFilter, Eye, SquarePen } from 'lucide-react';
+import { Plus, Search, ListFilter, SquarePen } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import UserDetailsModal, { rolePill, roleShort } from '@/components/modals/UserDetailsModal';
 import UserFilterModal, { UserFilters } from '@/components/modals/UserFilterModal';
@@ -133,7 +133,7 @@ export default function UsersPage() {
                 <span>{t('columns.restaurant')}</span>
                 <span>{t('columns.branch')}</span>
                 <span>{t('columns.status')}</span>
-                <span>{t('columns.actions')}</span>
+                <span className="text-center">{t('columns.actions')}</span>
               </div>
               {filtered.length === 0 ? (
                 <p className="px-6 py-10 text-center text-sm text-[#989898]">{t('noUsersMatch')}</p>
@@ -172,14 +172,7 @@ export default function UsersPage() {
                         {u.status === 'Active' ? ts('active') : u.status === 'Suspended' ? ts('suspended') : ts('inactive')}
                       </span>
                     </span>
-                    <span className="flex items-center gap-2">
-                      <button
-                        onClick={() => setDetails({ user: u, isNew: false, mode: 'view' })}
-                        aria-label={t('viewUser', { name: u.name })}
-                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                      >
-                        <Eye size={18} />
-                      </button>
+                    <span className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => setDetails({ user: u, isNew: false, mode: 'edit' })}
                         aria-label={t('editUser', { name: u.name })}

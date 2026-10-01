@@ -218,7 +218,19 @@ function CustomPlanCard({
   const ar = locale === 'ar';
   return (
     <div className="relative bg-white rounded-2xl border-2 border-gray-200 p-5 flex flex-col">
-      <h4 className="font-bold text-[#2D2F33] text-lg">{plan.name}</h4>
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 className="font-bold text-[#2D2F33] text-lg">{ar ? (plan.nameAr || plan.name) : plan.name}</h4>
+        {plan.hidden && (
+          <span className="rounded-full bg-[#2D2F33] px-2.5 py-1 text-[11px] font-bold text-white">
+            {t('hidden')}
+          </span>
+        )}
+      </div>
+      {(ar ? (plan.descriptionAr || plan.description) : plan.description) && (
+        <p className="mt-1 text-sm font-normal text-[#989898] leading-snug">
+          {ar ? (plan.descriptionAr || plan.description) : plan.description}
+        </p>
+      )}
       <div className="text-[32px] leading-tight font-bold text-[#2D2F33] mt-1">
         <span dir="ltr">${customPlanPrice(plan, billingCycle).toLocaleString()}</span>
         <span className="text-sm text-[#989898] font-normal"> {ar ? '/شهر' : '/mo'}</span>

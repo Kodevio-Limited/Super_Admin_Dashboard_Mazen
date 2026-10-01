@@ -79,6 +79,9 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
   const locale = useLocale();
   const isAr = locale === 'ar';
   const [planName, setPlanName] = useState(editing?.name || '');
+  const [planNameArInput, setPlanNameArInput] = useState(editing?.nameAr || '');
+  const [description, setDescription] = useState(editing?.description || '');
+  const [descriptionAr, setDescriptionAr] = useState(editing?.descriptionAr || '');
   const [monthly, setMonthly] = useState(editing ? String(editing.prices.monthly) : '');
   const [yearly, setYearly] = useState(editing ? String(editing.prices.yearly) : '');
   const [quarterly, setQuarterly] = useState(editing ? String(editing.prices.quarterly) : '');
@@ -95,6 +98,7 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
 
   const [modules, setModules] = useState<string[]>(editing?.modules || [...MODULES]);
   const [isPrivate, setIsPrivate] = useState(editing?.isPrivate || false);
+  const [hidden, setHidden] = useState(editing?.hidden || false);
 
   if (!isOpen) return null;
   const kindLabel = kind === 'Restaurant' ? t('kindRestaurant') : t('kindBranch');
@@ -115,6 +119,9 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
     onSave({
       id: editing?.id || `plan-${Date.now()}`,
       name: planName.trim() || (kind === 'Restaurant' ? 'Custom Restaurant Plan' : 'Custom Branch Plan'),
+      nameAr: planNameArInput.trim() || undefined,
+      description: description.trim() || undefined,
+      descriptionAr: descriptionAr.trim() || undefined,
       kind,
       prices: { monthly: num(monthly), yearly: num(yearly), quarterly: num(quarterly), semi: num(semi) },
       maxTables: limitVal(tablesOn, maxTables),
@@ -123,6 +130,7 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
       maxOrders: limitVal(ordersOn, maxOrders),
       modules,
       isPrivate: kind === 'Branch' ? isPrivate : undefined,
+      hidden,
     });
     onClose();
   };
@@ -160,6 +168,36 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
             onChange={(e) => setPlanName(e.target.value)}
             placeholder={t('planNamePlaceholder')}
             className={pillInput}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-sm text-[#2D2F33]">{t('planNameAr')}</label>
+          <input
+            type="text"
+            value={planNameArInput}
+            onChange={(e) => setPlanNameArInput(e.target.value)}
+            placeholder={t('planNameArPlaceholder')}
+            className={pillInput}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-sm text-[#2D2F33]">{t('planDescription')}</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t('planDescriptionPlaceholder')}
+            rows={3}
+            className="w-full px-6 py-4 bg-[#F2F2F2] rounded-2xl text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 resize-none transition-all"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-sm text-[#2D2F33]">{t('planDescriptionAr')}</label>
+          <textarea
+            value={descriptionAr}
+            onChange={(e) => setDescriptionAr(e.target.value)}
+            placeholder={t('planDescriptionArPlaceholder')}
+            rows={3}
+            className="w-full px-6 py-4 bg-[#F2F2F2] rounded-2xl text-[15px] text-[#2D2F33] placeholder:text-[#989898] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 resize-none transition-all"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -230,6 +268,22 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
             </button>
           </div>
         )}
+        <div className="flex items-center justify-between gap-4 pt-1">
+          <span className="min-w-0">
+            <span className="block text-[15px] font-medium text-[#2D2F33]">{t('hidePlan')}</span>
+            <span className="block text-xs text-[#989898] mt-0.5">{t('hidePlanDesc')}</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hidden}
+            aria-label={t('hidePlan')}
+            onClick={() => setHidden(!hidden)}
+            className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${hidden ? 'bg-[#22C55E]' : 'bg-gray-300'}`}
+          >
+            <span className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${hidden ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'}`} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-6">

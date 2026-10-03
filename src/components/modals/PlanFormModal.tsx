@@ -97,7 +97,6 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
   const [ordersOn, setOrdersOn] = useState(editing?.maxOrders !== undefined);
 
   const [modules, setModules] = useState<string[]>(editing?.modules || [...MODULES]);
-  const [isPrivate, setIsPrivate] = useState(editing?.isPrivate || false);
   const [hidden, setHidden] = useState(editing?.hidden || false);
 
   if (!isOpen) return null;
@@ -129,7 +128,6 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
       maxStaff: limitVal(staffOn, maxStaff),
       maxOrders: limitVal(ordersOn, maxOrders),
       modules,
-      isPrivate: kind === 'Branch' ? isPrivate : undefined,
       hidden,
     });
     onClose();
@@ -253,21 +251,6 @@ export default function PlanFormModal({ isOpen, kind, editing, onClose, onSave }
             </div>
           );
         })}
-        {kind === 'Branch' && (
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-[15px] font-medium text-[#2D2F33]">{t('privatePlan')}</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isPrivate}
-              aria-label={t('privatePlan')}
-              onClick={() => setIsPrivate(!isPrivate)}
-              className={`w-14 h-8 rounded-full p-1 transition-colors ${isPrivate ? 'bg-[#22C55E]' : 'bg-gray-300'}`}
-            >
-              <span className={`block w-6 h-6 rounded-full bg-white shadow transition-transform ${isPrivate ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0'}`} />
-            </button>
-          </div>
-        )}
         <div className="flex items-center justify-between gap-4 pt-1">
           <span className="min-w-0">
             <span className="block text-[15px] font-medium text-[#2D2F33]">{t('hidePlan')}</span>

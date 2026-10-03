@@ -92,6 +92,17 @@ html[lang="ar"] .font-poppins {
   background: #989898;
 }
 
+/* ─── Dashboard density scale (Bug-61) ────────────────────────────────────── */
+/* The dashboard was designed at large display sizes (40px KPI numbers, 33px
+   section headings, 22px nav icons) and reads oversized on smaller screens.
+   `zoom` scales text, icons, AND layout uniformly — the single knob to tune
+   overall density. Applied on the dashboard shell, so sidebar, topbar, pages,
+   modals, and drawers all shrink together. Auth pages are intentionally left
+   at full size. Raise toward 1 (or lower) to adjust. */
+.sa-density {
+  zoom: 0.85;
+}
+
 /* ─── RTL icon flips ──────────────────────────────────────────────────────── */
 /* Directional icons that must mirror in RTL.
    Applied via [dir="rtl"] so it's automatic when html dir switches. */

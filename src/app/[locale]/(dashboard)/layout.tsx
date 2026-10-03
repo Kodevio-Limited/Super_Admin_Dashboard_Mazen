@@ -15,7 +15,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F2F2F2] flex">
+    <div className="sa-density min-h-screen bg-[#F2F2F2] flex">
       <Sidebar collapsed={collapsed} onToggleCollapsed={() => setCollapsed((c) => !c)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden max-md:pt-14">
         {children}

@@ -36,8 +36,20 @@ const KPI_CARDS = [
   { key: 'activeRestaurants', value: '155', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: Receipt },
   { key: 'totalOrders', value: '432', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: UtensilsCrossed },
   { key: 'paidAccounts', value: '142', subKey: 'percentOfTotal', subValues: { value: '91%' }, subClass: 'text-[#989898]', icon: Armchair },
-  { key: 'delayedPayments', value: '13', subKey: 'actionRequired', subClass: 'text-[#E52B2B]', icon: Clock },
+  { key: 'delayedPayments', value: '13', subKey: 'actionRequired', subClass: 'text-[#E52B2B]', icon: Clock, viewHash: '#delayed' },
 ] as const;
+
+// --- Delayed payments list (Bug-20). TODO(api): GET /billing/delayed.
+// Mock rows shaped like the ledger; count matches the KPI (13 total,
+// showing the most overdue first).
+const DELAYED_ROWS = [
+  { restaurant: 'Casa Mia Italian', plan: 'Custom Plan', amount: '$299.00', overdue: '21 days', contact: 'marcus@casamiapizza.com' },
+  { restaurant: 'Bistro Belle', plan: 'Basic Plan', amount: '$19.00', overdue: '18 days', contact: 'chloe@bistrobelle.com' },
+  { restaurant: "L'Étoile Grill", plan: 'Pro Plan', amount: '$63.00', overdue: '15 days', contact: 'tariq@grilletoile.com' },
+  { restaurant: 'The Shamrock Pub', plan: 'Pro Plan', amount: '$63.00', overdue: '12 days', contact: 'liam@dublinpub.com' },
+  { restaurant: 'Tokyo Ramen House', plan: 'Enterprise Plan', amount: '$191.00', overdue: '9 days', contact: 'alexander@tokyodining.com' },
+  { restaurant: 'Burger Haven', plan: 'Basic Plan', amount: '$19.00', overdue: '6 days', contact: 'omar@burgerhaven.com' },
+];
 
 // --- Revenue Over Time (traced from the Figma SVG; x slots 8-9 are literal
 // "Text" placeholders in the design, rendered here as Aug / Sep) ---
@@ -229,6 +241,15 @@ export default function RevenueReportsPage() {
                   {'delta' in card && card.delta && <TrendingUp size={16} />}
                   <span>{'subValues' in card ? t(card.subKey as any, card.subValues) : t(card.subKey as any)}</span>
                 </p>
+                {'viewHash' in card && card.viewHash ? (
+                  <a
+                    href={card.viewHash}
+                    className="inline-flex w-fit items-center gap-1.5 self-end rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
+                  >
+                    {tc('view')}
+                    <span aria-hidden="true">→</span>
+                  </a>
+                ) : null}
               </div>
             );
           })}
@@ -380,6 +401,43 @@ export default function RevenueReportsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Delayed Payments — who is delayed (Bug-20). TODO(api): GET /billing/delayed. */}
+        <div id="delayed" className="scroll-mt-6 rounded-xl bg-white p-[22px]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('delayedPayments')}</h3>
+            <span className="rounded-full bg-red-100 px-4 py-1.5 text-sm font-semibold text-red-700">
+              13 {t('actionRequired')}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-[#989898]">Showing the 6 most overdue accounts.</p>
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-start border-collapse min-w-[720px]">
+              <thead>
+                <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+                  <th className="py-3 px-4 rounded-s-lg">{t('columns.restaurant')}</th>
+                  <th className="py-3 px-4">{t('columns.planTier')}</th>
+                  <th className="py-3 px-4">{t('columns.revenue')}</th>
+                  <th className="py-3 px-4">Overdue</th>
+                  <th className="py-3 px-4 rounded-e-lg">Contact</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm">
+                {DELAYED_ROWS.map((row, i) => (
+                  <tr key={i}>
+                    <td className="py-4 px-4 font-semibold text-[#2D2F33]">{row.restaurant}</td>
+                    <td className="py-4 px-4 text-[#686868]">{row.plan}</td>
+                    <td className="py-4 px-4 font-semibold text-[#E52B2B]"><bdi dir="ltr">{row.amount}</bdi></td>
+                    <td className="py-4 px-4">
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
+                    </td>
+                    <td className="py-4 px-4 text-[#686868]"><bdi dir="ltr">{row.contact}</bdi></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 

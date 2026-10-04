@@ -23,6 +23,7 @@ import ModifyPlanModal from './ModifyPlanModal';
 import ManualPlanActivationModal from './ManualPlanActivationModal';
 import ManualActivationModal from './ManualActivationModal';
 import ActionNotAllowedModal, { BlockedBranchAction } from './ActionNotAllowedModal';
+import { useQueryModal } from '../../lib/use-query-modal';
 
 // Source of truth: Figma frames 1862:762 (Overview), 1465:821 (Branches),
 // 1508:1274 (Add branch), 1511:1544 (Main branch), 1512:1785 (Subscription),
@@ -146,9 +147,10 @@ function BranchDetailsPanel({
   // Which branch action is currently blocked by the overarching restaurant
   // plan (null = none). Drives the Action Not Allowed modal + its text.
   const [blockedAction, setBlockedAction] = useState<BlockedBranchAction | null>(null);
-  const [isModifyOpen, setIsModifyOpen] = useState(false);
-  const [isManualOpen, setIsManualOpen] = useState(false);
-  const [isLogOpen, setIsLogOpen] = useState(false);
+  // Nested plan modals, query-driven (?sub=modify-plan|manual-activation|log-payment)
+  const [isModifyOpen, setIsModifyOpen] = useQueryModal('modify-plan', 'sub');
+  const [isManualOpen, setIsManualOpen] = useQueryModal('manual-activation', 'sub');
+  const [isLogOpen, setIsLogOpen] = useQueryModal('log-payment', 'sub');
   const [subNote, setSubNote] = useState('');
   const [cancelArmed, setCancelArmed] = useState(false);
 
@@ -684,11 +686,14 @@ export default function RestaurantFlowModal({
   // Subscription tab state
   const [renewalNote, setRenewalNote] = useState('');
   const [cancelArmed, setCancelArmed] = useState(false);
-  const [isModifyOpen, setIsModifyOpen] = useState(false);
-  const [isManualOpen, setIsManualOpen] = useState(false);
-  const [isLogPaymentOpen, setIsLogPaymentOpen] = useState(false);
+  // Nested plan modals, query-driven (?sub=modify-plan|manual-activation|log-payment)
+  const [isModifyOpen, setIsModifyOpen] = useQueryModal('modify-plan', 'sub');
+  const [isManualOpen, setIsManualOpen] = useQueryModal('manual-activation', 'sub');
+  const [isLogPaymentOpen, setIsLogPaymentOpen] = useQueryModal('log-payment', 'sub');
   // After subscribing to a restaurant plan, offer to pull individually-planned
-  // branches under it (Bug-51). Null = no prompt.
+  // branches under it (Bug-51). Null = no prompt. Query-mirrored
+  // (?sub=include-branches) so Back dismisses it.
+  const [includeSubOpen, setIncludeSubOpen] = useQueryModal('include-branches', 'sub');
   const [includePrompt, setIncludePrompt] = useState<{
     tier: string;
     expiry: string;
@@ -707,6 +712,11 @@ export default function RestaurantFlowModal({
       expiryAr: np.planExpiryAr ?? restaurant.planExpiry_ar ?? restaurant.planExpiry,
       ids: individual.map((b) => b.id),
     });
+    setIncludeSubOpen(true);
+  };
+  const closeIncludePrompt = () => {
+    setIncludePrompt(null);
+    setIncludeSubOpen(false);
   };
 
   const confirmIncludeBranches = () => {
@@ -726,7 +736,7 @@ export default function RestaurantFlowModal({
       ),
     });
     setRenewalNote(t('branchesIncluded', { count: includePrompt.ids.length }));
-    setIncludePrompt(null);
+    closeIncludePrompt();
   };
 
   // Branch form state
@@ -1459,9 +1469,9 @@ export default function RestaurantFlowModal({
 
       {/* Include-branches prompt (Bug-51): after subscribing, offer to pull
           individually-planned branches under the restaurant plan */}
-      {includePrompt && (
+      {includePrompt && includeSubOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-          <div onClick={() => setIncludePrompt(null)} className="fixed inset-0 bg-black/50 transition-opacity" />
+          <div onClick={closeIncludePrompt} className="fixed inset-0 bg-black/50 transition-opacity" />
           <div className="relative bg-white w-full max-w-[520px] rounded-[22px] p-8 shadow-2xl border border-gray-100 z-10 animate-in zoom-in-95 duration-200">
             <h3 className="text-[22px] font-bold text-[#2D2F33] tracking-tight">
               {t('includeBranchesTitle')}
@@ -1514,7 +1524,7 @@ export default function RestaurantFlowModal({
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setIncludePrompt(null)}
+                onClick={closeIncludePrompt}
                 className="h-[52px] rounded-full bg-[#E9E9E9] hover:bg-gray-300 text-[#2D2F33] font-semibold text-[15px] transition-colors"
               >
                 {t('skip')}

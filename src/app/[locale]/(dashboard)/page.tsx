@@ -8,15 +8,94 @@ import {
   Store, Receipt, UtensilsCrossed, Armchair,
   Clock, TrendingUp, ChevronDown, ArrowRight,
 } from 'lucide-react';
-import SelectableAreaChart from '../../../components/SelectableAreaChart';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 
-const REVENUE_TRENDS = [
-  { month: 'Jan', value: 8 },  { month: 'Feb', value: 2.5 },
-  { month: 'Mar', value: 4 },  { month: 'Apr', value: 8 },
-  { month: 'May', value: 16 }, { month: 'Jun', value: 21 },
-  { month: 'Jul', value: 13 }, { month: 'Aug', value: 12 },
-  { month: 'Sep', value: 17 },
+// Revenue split per plan tier (Bug-15). TODO(api): GET /revenue/trends?by=tier.
+const REVENUE_BY_TIER = [
+  { month: 'Jan', Basic: 1.6, Pro: 3.6, Enterprise: 2.8 },
+  { month: 'Feb', Basic: 0.5, Pro: 1.1, Enterprise: 0.9 },
+  { month: 'Mar', Basic: 0.8, Pro: 1.8, Enterprise: 1.4 },
+  { month: 'Apr', Basic: 1.6, Pro: 3.6, Enterprise: 2.8 },
+  { month: 'May', Basic: 3.2, Pro: 7.2, Enterprise: 5.6 },
+  { month: 'Jun', Basic: 4.2, Pro: 9.5, Enterprise: 7.3 },
+  { month: 'Jul', Basic: 2.6, Pro: 5.9, Enterprise: 4.5 },
+  { month: 'Aug', Basic: 2.4, Pro: 5.4, Enterprise: 4.2 },
+  { month: 'Sep', Basic: 3.4, Pro: 7.7, Enterprise: 5.9 },
 ];
+
+const TIER_SERIES = [
+  { key: 'Basic', color: '#5B9BF5' },
+  { key: 'Pro', color: '#026F4F' },
+  { key: 'Enterprise', color: '#B93DBE' },
+] as const;
+
+function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
+  const [hidden, setHidden] = useState<string[]>([]);
+  const toggle = (key: string) =>
+    setHidden((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const label = (m: string) => (isAr ? (MONTH_AR[m] ?? m) : m);
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex flex-wrap gap-2">
+        {TIER_SERIES.map((s) => {
+          const off = hidden.includes(s.key);
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => toggle(s.key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-opacity ${off ? 'opacity-30' : 'opacity-100'} bg-[#F2F2F2] text-[#2D2F33]`}
+              aria-pressed={!off}
+            >
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+              {s.key}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-2 min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={REVENUE_BY_TIER} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="#E9E9E9" />
+            <XAxis
+              dataKey="month"
+              tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: '#E9E9E9' }}
+              tickFormatter={label}
+            />
+            <YAxis
+              domain={[0, 30]}
+              ticks={[0, 10, 20, 30]}
+              tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v: number) => (v === 0 ? '0' : `${v}K`)}
+            />
+            {TIER_SERIES.filter((s) => !hidden.includes(s.key)).map((s) => (
+              <Line
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                stroke={s.color}
+                strokeWidth={2.5}
+                dot={false}
+                isAnimationActive={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
 
 const ONBOARDING_BARS = [
   { day: 'Sat', value: 49.6 }, { day: 'Sun', value: 32.5 },
@@ -73,7 +152,7 @@ export default function SuperAdminDashboardPage() {
       delta: t('deltaLastMonth', { value: '12.5%' }), icon: UtensilsCrossed,
     },
     { key: 'activeUsersLive',         value: '342', icon: Armchair },
-    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock, viewHref: '/subscriptions' as const },
+    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock, viewHref: '/restaurants?filter=expiring' as const },
   ];
 
   return (
@@ -124,13 +203,7 @@ export default function SuperAdminDashboardPage() {
               <MonthPill label={t('monthPill')} />
             </div>
             <div className="h-[273px] w-full mt-4">
-              <SelectableAreaChart
-                data={REVENUE_TRENDS.map((d) => ({ label: isAr ? (MONTH_AR[d.month] ?? d.month) : d.month, value: d.value }))}
-                formatValue={(v) => `$${v}K`}
-                yDomain={[0, 30]} yTicks={[0, 10, 20, 30]}
-                formatTick={(v) => (v === 0 ? '0' : `${v}K`)}
-                gradientId="revTrendFill"
-              />
+              <RevenueTrendsByPlan isAr={isAr} />
             </div>
           </div>
 

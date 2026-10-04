@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus } from 'lucide-react';
+import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus, Trash2, Share2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import PlanTierPicker from '../PlanTierPicker';
 import { toArDate, planNameAr } from '../../lib/localize';
+import { readQueryParam, writeQueryParam } from '../../lib/use-query-modal';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import {
   FIGMA_TIERS,
@@ -111,6 +112,23 @@ export default function CreateRestaurantModal({
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
 
+  // Query-driven step: ?modal=create-restaurant[&step=branches|plan|credentials|done]
+  useEffect(() => {
+    if (!isOpen) {
+      writeQueryParam('step', null, false);
+      return;
+    }
+    const s = readQueryParam('step');
+    if (s === 'branches' || s === 'plan' || s === 'credentials' || s === 'done') {
+      setStep(s);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen) return;
+    writeQueryParam('step', step === 'info' ? null : step, false);
+  }, [isOpen, step]);
+
   if (!isOpen) return null;
 
   const updateDraft = (i: number, patch: Partial<DraftBranch>) =>
@@ -123,6 +141,9 @@ export default function CreateRestaurantModal({
 
   const handleBranchesSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Bug-17: exactly one Main Branch — block duplicate/“main” names on added branches.
+    const names = draftBranches.slice(1).map((b) => b.name.trim().toLowerCase()).filter(Boolean);
+    if (names.length !== new Set(names).size || names.includes('main branch')) return;
     setStep('plan');
   };
 
@@ -134,7 +155,8 @@ export default function CreateRestaurantModal({
     const id = `rest-${Date.now()}`;
     const branches = draftBranches.map((b, i) => ({
       id: `br-${Date.now()}-${i}`,
-      name: b.name || (i === 0 ? `${name} Main Branch` : `${name} Branch ${i + 1}`),
+      // Bug-17: first block is always the single Main Branch.
+      name: i === 0 ? `${name} Main Branch` : (b.name || `${name} Branch ${i + 1}`),
       name_ar: b.name || undefined,
       address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
       phone: ownerPhone,
@@ -179,12 +201,35 @@ export default function CreateRestaurantModal({
     setStep('credentials');
   };
 
+  const credentialsText = () =>
+    `Login URL: http://localhost:3000/login\nEmail: ${credentials.username}\nPassword: ${credentials.temporaryPassword}`;
+
   const handleCopyCredentials = () => {
-    navigator.clipboard.writeText(
-      `Login URL: http://localhost:3000/login\nEmail: ${credentials.username}\nPassword: ${credentials.temporaryPassword}`
-    );
+    navigator.clipboard.writeText(credentialsText());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Bug-18: one-click share of the new owner's login (native share sheet,
+  // WhatsApp-capable) with clipboard fallback.
+  const [shared, setShared] = useState(false);
+  const handleShareCredentials = async () => {
+    const text = credentialsText();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: t('createdTitle'), text });
+        return;
+      }
+      throw new Error('no-share');
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // clipboard unavailable — nothing to fall back to
+      }
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
   };
 
   const goToRestaurant = () => {
@@ -301,15 +346,36 @@ export default function CreateRestaurantModal({
 
               {draftBranches.map((b, i) => (
                 <div key={i} className="space-y-5">
-                  {i > 0 && (
-                    <p className="text-sm font-semibold text-[#2D2F33] pt-2 border-t border-gray-100">
-                      {t('branchN', { n: i + 1 })}
-                    </p>
+                  {i === 0 ? (
+                    // Bug-17: exactly one Main Branch — fixed, non-editable, non-deletable.
+                    <div className="space-y-1.5">
+                      <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
+                      <div className="flex h-14 items-center justify-between rounded-full bg-[#026F4F]/10 px-6 text-[15px] font-semibold text-[#026F4F]">
+                        <span>{t('mainBranch')}</span>
+                        <span className="rounded-full bg-[#026F4F] px-3 py-1 text-xs font-semibold text-white">{t('primary')}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <p className="text-sm font-semibold text-[#2D2F33]">
+                          {t('branchN', { n: i + 1 })}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setDraftBranches((prev) => prev.filter((_, j) => j !== i))}
+                          aria-label={t('removeBranch')}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FDECEC] text-[#E85E5E] transition-colors hover:bg-[#E85E5E] hover:text-white"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
+                        <input type="text" value={b.name} onChange={(e) => updateDraft(i, { name: e.target.value })} placeholder={t('branchNamePlaceholder')} className={pillInput} />
+                      </div>
+                    </>
                   )}
-                  <div className="space-y-1.5">
-                    <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
-                    <input type="text" value={b.name} onChange={(e) => updateDraft(i, { name: e.target.value })} placeholder={t('branchNamePlaceholder')} className={pillInput} />
-                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-sm text-[#2D2F33]">{t('cityCountry')}</label>
@@ -322,6 +388,13 @@ export default function CreateRestaurantModal({
                   </div>
                 </div>
               ))}
+              {(() => {
+                const names = draftBranches.slice(1).map((b) => b.name.trim().toLowerCase()).filter(Boolean);
+                const dup = names.length !== new Set(names).size || names.includes('main branch');
+                return dup ? (
+                  <p className="text-sm font-medium text-[#E85E5E]">{t('duplicateBranchName')}</p>
+                ) : null;
+              })()}
 
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('info')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
@@ -371,11 +444,17 @@ export default function CreateRestaurantModal({
                 <label className="block text-sm text-[#2D2F33]">{t('tempPassword')}</label>
                 <input type="text" readOnly value={credentials.temporaryPassword} placeholder="aKOhfyf8qw9r9-" className={pillInput} />
               </div>
-              <div className="flex items-center justify-between gap-3 pt-2">
-                <button onClick={handleCopyCredentials} className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all">
-                  {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
-                  <span>{copied ? t('copied') : t('copyCredentials')}</span>
-                </button>
+              <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <button onClick={handleCopyCredentials} className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all">
+                    {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                    <span>{copied ? t('copied') : t('copyCredentials')}</span>
+                  </button>
+                  <button onClick={handleShareCredentials} className="px-6 py-3 rounded-full border border-gray-200 hover:border-[#026F4F] hover:text-[#026F4F] text-sm font-semibold text-[#2D2F33] flex items-center gap-2 transition-all">
+                    {shared ? <Check size={16} className="text-green-600" /> : <Share2 size={16} />}
+                    <span>{shared ? t('copied') : t('shareCredentials')}</span>
+                  </button>
+                </div>
                 <button onClick={() => setStep('done')} className="px-10 py-3.5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md transition-all cursor-pointer">
                   {t('done')}
                 </button>

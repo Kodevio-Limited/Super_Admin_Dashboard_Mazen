@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Plus, ChevronUp, ChevronDown, Building2, SquarePen } from 'lucide-react';
 import Topbar from '@/components/Topbar';
@@ -10,6 +10,7 @@ import { planPill } from '@/data/figmaPlans';
 import { locField } from '@/lib/localize';
 import CreateRestaurantModal from '@/components/modals/CreateRestaurantModal';
 import RestaurantFlowModal from '@/components/modals/RestaurantFlowModal';
+import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-modal';
 
 // Source of truth: Figma frame "Restaurants" (1856:1628) — grouped
 // expandable restaurant/branch table. No search or filters in the frame.
@@ -28,15 +29,80 @@ export default function RestaurantsPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(getRestaurants().map((r) => [r.id, false]))
   );
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // Query-driven overlays: ?modal=create-restaurant[&step=branches],
+  // ?modal=restaurant&id=<restId>[&branch=<id>&tab=Overview|Subscription|Activity]
+  const [createOpen, setCreateOpen] = useQueryModal('create-restaurant');
   // Single flow modal: restaurant edit views vs branch views open distinctly.
+  const [flowOpen, setFlowOpen] = useQueryModal('restaurant');
   const [flow, setFlow] = useState<{
     restaurantId: string;
     branch?: { id: string; tab: 'Overview' | 'Subscription' | 'Activity' } | null;
   } | null>(null);
 
+  const openFlow = (f: NonNullable<typeof flow>) => {
+    setFlow(f);
+    writeQueryParam('id', f.restaurantId, false);
+    writeQueryParam('branch', f.branch?.id ?? null, false);
+    writeQueryParam('tab', f.branch?.tab ?? null, false);
+    setFlowOpen(true);
+  };
+  const closeFlowModal = () => {
+    setFlow(null);
+    setFlowOpen(false);
+    writeQueryParam('id', null, false);
+    writeQueryParam('branch', null, false);
+    writeQueryParam('tab', null, false);
+    setRestaurants(getRestaurants());
+  };
+
+  // Cold load: restore the flow modal from ?modal=restaurant&id=[&branch=&tab=]
+  useEffect(() => {
+    if (readQueryParam('modal') !== 'restaurant') return;
+    const id = readQueryParam('id');
+    if (!id) return;
+    const rest = getRestaurants().find((r) => r.id === id);
+    if (!rest) return;
+    const branchId = readQueryParam('branch');
+    const tab = readQueryParam('tab');
+    const validTab = tab === 'Subscription' || tab === 'Activity' ? tab : 'Overview';
+    if (branchId) {
+      const branch = rest.branches.find((b) => b.id === branchId);
+      if (!branch) return;
+      setFlow({ restaurantId: id, branch: { id: branchId, tab: validTab } });
+    } else {
+      setFlow({ restaurantId: id });
+    }
+  }, []);
+
   const toggle = (id: string) =>
     setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
+
+  // Bug-14: ?filter=expiring (from Dashboard Expiring card) shows the
+  // expiring-soon list: restaurants sorted by expiry ascending with
+  // days-left badges. TODO(api): GET /restaurants?expiringWithin=7d.
+  const [expiringOnly, setExpiringOnly] = useState(false);
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('filter') === 'expiring') {
+        setExpiringOnly(true);
+        setExpanded(Object.fromEntries(getRestaurants().map((r) => [r.id, true])));
+      }
+    } catch {
+      // ignore — default to full list
+    }
+  }, []);
+
+  const daysLeft = (expiry: string): number | null => {
+    const ms = Date.parse(expiry);
+    if (Number.isNaN(ms)) return null;
+    return Math.ceil((ms - Date.now()) / 86400000);
+  };
+
+  const visibleRestaurants = React.useMemo(() => {
+    if (!expiringOnly) return restaurants;
+    return [...restaurants].sort((a, b) => Date.parse(a.planExpiry) - Date.parse(b.planExpiry));
+  }, [restaurants, expiringOnly]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -52,7 +118,7 @@ export default function RestaurantsPage() {
             <p className="text-[#989898] mt-1">{t('subtitle')}</p>
           </div>
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => setCreateOpen(true)}
             className="h-12 px-6 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md flex items-center gap-2 transition-all"
           >
             <Plus size={20} />
@@ -60,6 +126,19 @@ export default function RestaurantsPage() {
           </button>
         </div>
 
+        {expiringOnly && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#FFF7E6] px-6 py-4 outline outline-1 outline-[#F5C518]/40">
+            <p className="text-sm font-medium text-[#2D2F33]">
+              Showing subscriptions expiring soon — sorted by expiry date (soonest first).
+            </p>
+            <button
+              onClick={() => setExpiringOnly(false)}
+              className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#026F4F] outline outline-1 outline-[#026F4F]/30 transition-colors hover:bg-[#026F4F] hover:text-white"
+            >
+              Show all restaurants
+            </button>
+          </div>
+        )}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[980px]">
@@ -74,7 +153,7 @@ export default function RestaurantsPage() {
                 <span className="sticky end-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)]">{t('columns.actions')}</span>
               </div>
 
-              {restaurants.map((rest) => {
+              {visibleRestaurants.map((rest) => {
                 const isOpen = expanded[rest.id] ?? false;
                 return (
                   <div key={rest.id} className="border-t border-gray-100 first:border-t-0">
@@ -105,7 +184,7 @@ export default function RestaurantsPage() {
                       <Dash />
                       <span className="sticky end-0 bg-white shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
                         <button
-                          onClick={() => setFlow({ restaurantId: rest.id })}
+                          onClick={() => openFlow({ restaurantId: rest.id })}
                           aria-label={`${tc('edit')} ${locField(locale, rest, 'name')}`}
                           className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                         >
@@ -148,20 +227,22 @@ export default function RestaurantsPage() {
                                 </span>
                               </span>
                               <span className="text-sm text-[#2D2F33]">{locField(locale, rest, 'joinedDate')}</span>
-                              <span className="text-sm text-[#2D2F33]">{locField(locale, rest, 'planExpiry')}</span>
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm text-[#2D2F33]">{locField(locale, rest, 'planExpiry')}</span>
+                                {expiringOnly && (() => {
+                                  const d = daysLeft(rest.planExpiry);
+                                  if (d === null) return null;
+                                  const label = d < 0 ? `Overdue ${Math.abs(d)}d` : d === 0 ? 'Expires today' : `${d}d left`;
+                                  return (
+                                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${d <= 7 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                      {label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                              {/* Bug-16: no branch-level edit buttons — editing lives in the restaurant modal. */}
                               <span className="sticky end-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
-                                <button
-                                  onClick={() =>
-                                    setFlow({
-                                      restaurantId: rest.id,
-                                      branch: { id: branch.id, tab: 'Overview' },
-                                    })
-                                  }
-                                  aria-label={`${tc('edit')} ${locField(locale, branch, 'name')}`}
-                                  className="w-11 h-11 rounded-lg bg-[#E9E9E9] hover:bg-gray-300 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                                >
-                                  <SquarePen size={18} />
-                                </button>
+                                <Dash />
                               </span>
                             </div>
                           );
@@ -177,25 +258,25 @@ export default function RestaurantsPage() {
       </main>
 
       <CreateRestaurantModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
         onSuccess={(newRest) => {
           addRestaurant(newRest);
           setRestaurants(getRestaurants());
           setExpanded((prev) => ({ ...prev, [newRest.id]: true }));
         }}
-        onViewRestaurant={(id) => setFlow({ restaurantId: id })}
+        onViewRestaurant={(id) => {
+          setCreateOpen(false);
+          openFlow({ restaurantId: id });
+        }}
       />
 
-      {flow && (
+      {flowOpen && flow && (
         <RestaurantFlowModal
           key={`${flow.restaurantId}-${flow.branch?.id || 'rest'}`}
           restaurantId={flow.restaurantId}
           initialBranch={flow.branch || null}
-          onClose={() => {
-            setFlow(null);
-            setRestaurants(getRestaurants());
-          }}
+          onClose={closeFlowModal}
         />
       )}
     </div>

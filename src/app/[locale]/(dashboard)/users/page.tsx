@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, Search, ListFilter, SquarePen } from 'lucide-react';
+import { Plus, Search, ListFilter, SquarePen, Trash2 } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import UserDetailsModal, { rolePill, roleShort } from '@/components/modals/UserDetailsModal';
 import UserFilterModal, { UserFilters } from '@/components/modals/UserFilterModal';
@@ -12,6 +12,7 @@ import { getUsers, addUser, updateUser, deleteUser } from '@/data/userStore';
 import { getRestaurants } from '@/data/restaurantStore';
 import { AdminUser } from '@/types/admin';
 import { locField, pickAr } from '@/lib/localize';
+import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-modal';
 
 // Source of truth: Figma frame "Users" (1527:3912).
 // Role checkboxes map onto data roles: Admin → Super Admin + Restaurant Owner.
@@ -58,9 +59,45 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>(getUsers());
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<UserFilters>({ roles: [], restaurant: '', activeOnly: false });
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Query-driven overlays: ?modal=user-filter, ?modal=user-details&id=, ?modal=delete-user&id=
+  const [filterOpen, setFilterOpen] = useQueryModal('user-filter');
+  const [detailsOpen, setDetailsOpen] = useQueryModal('user-details');
+  const [deleteOpen, setDeleteOpen] = useQueryModal('delete-user');
   const [details, setDetails] = useState<DetailsState>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+
+  const openDetails = (user: AdminUser, isNew: boolean, mode: 'view' | 'edit') => {
+    setDetails({ user, isNew, mode });
+    writeQueryParam('id', user.id || null, false);
+    setDetailsOpen(true);
+  };
+  const closeDetails = () => {
+    setDetails(null);
+    setDetailsOpen(false);
+    writeQueryParam('id', null, false);
+  };
+  const openDelete = (user: AdminUser) => {
+    setDeleteTarget(user);
+    writeQueryParam('id', user.id, false);
+    setDeleteOpen(true);
+  };
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setDeleteOpen(false);
+    writeQueryParam('id', null, false);
+  };
+
+  // Cold load: restore details/delete targets from ?modal=&id=
+  useEffect(() => {
+    const modal = readQueryParam('modal');
+    if (modal !== 'user-details' && modal !== 'delete-user') return;
+    const id = readQueryParam('id');
+    if (!id) return;
+    const found = getUsers().find((u) => u.id === id);
+    if (!found) return;
+    if (modal === 'user-details') setDetails({ user: found, isNew: false, mode: 'edit' });
+    else setDeleteTarget(found);
+  }, []);
 
   const restaurants = getRestaurants();
 
@@ -179,6 +216,14 @@ export default function UsersPage() {
                         className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                       >
                         <SquarePen size={18} />
+                      </button>
+                      {/* Bug-19: row delete with confirm (action can't be undone). */}
+                      <button
+                        onClick={() => setDeleteTarget(u)}
+                        aria-label={`${tc('delete')} ${u.name}`}
+                        className="w-11 h-11 rounded-lg bg-[#FDECEC] hover:bg-[#E85E5E] flex items-center justify-center text-[#E85E5E] hover:text-white transition-colors"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </span>
                   </div>

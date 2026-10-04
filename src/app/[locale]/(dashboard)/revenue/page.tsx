@@ -14,9 +14,11 @@ import {
   ListFilter,
   Plus,
   Download,
+  X,
 } from 'lucide-react';
 import SelectableAreaChart from '@/components/SelectableAreaChart';
 import Topbar from '@/components/Topbar';
+import LeftPanel from '@/components/LeftPanel';
 import ExportLedgerModal from '@/components/modals/ExportLedgerModal';
 import LogEntryModal, { LedgerEntry } from '@/components/modals/LogEntryModal';
 import { mockLedger } from '@/data/mockData';
@@ -37,8 +39,57 @@ const KPI_CARDS = [
   { key: 'activeRestaurants', value: '155', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: Receipt },
   { key: 'totalOrders', value: '432', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: UtensilsCrossed },
   { key: 'paidAccounts', value: '142', subKey: 'percentOfTotal', subValues: { value: '91%' }, subClass: 'text-[#989898]', icon: Armchair },
-  { key: 'delayedPayments', value: '13', subKey: 'actionRequired', subClass: 'text-[#E52B2B]', icon: Clock, viewHash: '#delayed' },
+  { key: 'delayedPayments', value: '13', subKey: 'actionRequired', subClass: 'text-[#E52B2B]', icon: Clock, viewModal: 'delayed-payments' },
 ] as const;
+
+// "Who is delayed" modal (?modal=delayed-payments). Renders the overdue list.
+// TODO(api): GET /billing/delayed.
+function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('sa.revenue');
+  return (
+    <LeftPanel onClose={onClose} labelledBy="Delayed Payments" widthClass="w-[min(860px,94vw)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-bold text-[#2D2F33] text-2xl">{t('delayedPayments')}</h3>
+          <p className="text-[#989898] mt-1">13 {t('actionRequired')} — who is delayed</p>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors shrink-0"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full text-start border-collapse min-w-[760px]">
+          <thead>
+            <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+              <th className="whitespace-nowrap py-3 px-4 rounded-s-lg">{t('columns.restaurant')}</th>
+              <th className="whitespace-nowrap py-3 px-4">{t('columns.planTier')}</th>
+              <th className="whitespace-nowrap py-3 px-4">{t('columns.revenue')}</th>
+              <th className="whitespace-nowrap py-3 px-4">Overdue</th>
+              <th className="whitespace-nowrap py-3 px-4 rounded-e-lg">Contact</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-sm">
+            {DELAYED_ROWS.map((row, i) => (
+              <tr key={i}>
+                <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33]">{row.restaurant}</td>
+                <td className="whitespace-nowrap py-4 px-4 text-[#686868]">{row.plan}</td>
+                <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#E52B2B]"><bdi dir="ltr">{row.amount}</bdi></td>
+                <td className="whitespace-nowrap py-4 px-4">
+                  <span className="inline-block rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
+                </td>
+                <td className="whitespace-nowrap py-4 px-4 text-[#686868]"><bdi dir="ltr">{row.contact}</bdi></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </LeftPanel>
+  );
+}
 
 // --- Delayed payments list (Bug-20). TODO(api): GET /billing/delayed.
 // Mock rows shaped like the ledger; count matches the KPI (13 total,
@@ -171,9 +222,10 @@ export default function RevenueReportsPage() {
   const locale = useLocale();
   const isAr = locale === 'ar';
   const [ledger, setLedger] = useState<TransactionLedger[]>(mockLedger);
-  // Query-driven overlays: ?modal=export-ledger, ?modal=log-entry
+  // Query-driven overlays: ?modal=export-ledger, ?modal=log-entry, ?modal=delayed-payments
   const [exportOpen, setExportOpen] = useQueryModal('export-ledger');
   const [entryOpen, setEntryOpen] = useQueryModal('log-entry');
+  const [delayedOpen, setDelayedOpen] = useQueryModal('delayed-payments');
   // Bar select/deselect (Owner Reports & Analytics pattern).
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
@@ -243,14 +295,15 @@ export default function RevenueReportsPage() {
                   {'delta' in card && card.delta && <TrendingUp size={16} />}
                   <span>{'subValues' in card ? t(card.subKey as any, card.subValues) : t(card.subKey as any)}</span>
                 </p>
-                {'viewHash' in card && card.viewHash ? (
-                  <a
-                    href={card.viewHash}
+                {'viewModal' in card && card.viewModal ? (
+                  <button
+                    type="button"
+                    onClick={() => setDelayedOpen(true)}
                     className="inline-flex w-fit items-center gap-1.5 self-end rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
                   >
                     {tc('view')}
                     <span aria-hidden="true">→</span>
-                  </a>
+                  </button>
                 ) : null}
               </div>
             );
@@ -429,7 +482,7 @@ export default function RevenueReportsPage() {
               <tbody className="divide-y divide-gray-100 text-sm">
                 {DELAYED_ROWS.map((row, i) => (
                   <tr key={i}>
-                    <td className="py-4 px-4 font-semibold text-[#2D2F33]">{row.restaurant}</td>
+<td className="py-4 px-4 whitespace-nowrap font-semibold text-[#2D2F33]">{row.restaurant}</td>
                     <td className="py-4 px-4 text-[#686868]">{row.plan}</td>
                     <td className="py-4 px-4 font-semibold text-[#E52B2B]"><bdi dir="ltr">{row.amount}</bdi></td>
                     <td className="py-4 px-4">
@@ -562,6 +615,8 @@ export default function RevenueReportsPage() {
       {entryOpen && (
         <LogEntryModal onClose={() => setEntryOpen(false)} onSave={handleSaveEntry} />
       )}
+
+      {delayedOpen && <DelayedPaymentsModal onClose={() => setDelayedOpen(false)} />}
     </div>
   );
 }

@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
 import Topbar from '../../../components/Topbar';
+import LeftPanel from '../../../components/LeftPanel';
+import { useQueryModal } from '@/lib/use-query-modal';
+import { getRestaurants } from '@/data/restaurantStore';
+import { locField } from '@/lib/localize';
 import {
   Store, Receipt, UtensilsCrossed, Armchair,
-  Clock, TrendingUp, ChevronDown, ArrowRight,
+  Clock, TrendingUp, ChevronDown, ArrowRight, X,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -15,6 +18,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ReferenceLine,
 } from 'recharts';
 
 // Revenue split per plan tier (Bug-15). TODO(api): GET /revenue/trends?by=tier.
@@ -36,11 +40,109 @@ const TIER_SERIES = [
   { key: 'Enterprise', color: '#B93DBE' },
 ] as const;
 
+// "Expiring in next 7 days" modal (?modal=expiring-subscriptions).
+// Lists every restaurant sorted by expiry (soonest first) with days-left
+// pills. TODO(api): GET /restaurants?expiringWithin=7d.
+function ExpiringSubscriptionsModal({ onClose }: { onClose: () => void }) {
+  const locale = useLocale();
+  const rows = [...getRestaurants()].sort(
+    (a, b) => Date.parse(a.planExpiry) - Date.parse(b.planExpiry),
+  );
+  const daysLeft = (expiry: string): number | null => {
+    const ms = Date.parse(expiry);
+    if (Number.isNaN(ms)) return null;
+    return Math.ceil((ms - Date.now()) / 86400000);
+  };
+  return (
+    <LeftPanel onClose={onClose} labelledBy="Expiring Subscriptions" widthClass="w-[min(620px,94vw)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-bold text-[#2D2F33] text-2xl">Expiring Subscriptions</h3>
+          <p className="text-[#989898] mt-1">Expiring in next 7 days</p>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors shrink-0"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="mt-6 divide-y divide-gray-100">
+        {rows.map((r) => {
+          const d = daysLeft(r.planExpiry);
+          const label = d === null ? '—' : d < 0 ? `Overdue ${Math.abs(d)}d` : d === 0 ? 'Expires today' : `${d}d left`;
+          return (
+            <div key={r.id} className="flex items-center justify-between gap-4 py-4">
+              <div className="min-w-0">
+                <p className="font-semibold text-[#2D2F33] text-[17px] truncate">{locField(locale, r, 'name')}</p>
+                <p className="text-sm text-[#989898] mt-0.5 truncate">
+                  {locField(locale, r, 'planName')} • {locField(locale, r, 'planExpiry')}
+                </p>
+              </div>
+              {d !== null && (
+                <span className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold ${d <= 7 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </LeftPanel>
+  );
+}
+
 function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
   const [hidden, setHidden] = useState<string[]>([]);
   const toggle = (key: string) =>
     setHidden((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   const label = (m: string) => (isAr ? (MONTH_AR[m] ?? m) : m);
+  const visible = TIER_SERIES.filter((s) => !hidden.includes(s.key));
+
+  // Click a point to pin it (dot + dashed guide + tooltip for all 3 lines);
+  // scroll over the chart to move the pointer. Same interaction as before.
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [dotPos, setDotPos] = useState<{ x: number; y: number } | null>(null);
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const handleClick = useCallback((state: any) => {
+    const idx = state?.activeTooltipIndex;
+    if (idx === undefined || idx === null) return;
+    const now = Date.now();
+    setSelectedIndex((prev) => {
+      if (prev === idx) {
+        if (now - lastClickTime < 300) {
+          setDotPos(null);
+          return null;
+        }
+        return prev;
+      }
+      return idx;
+    });
+    setLastClickTime(now);
+  }, [lastClickTime]);
+
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      // Scrolling over the chart moves the pointer instead of the page.
+      e.preventDefault();
+      const direction = Math.sign(e.deltaY);
+      setSelectedIndex((prev) => {
+        const base = prev ?? 0;
+        const next = base - direction;
+        return Math.max(0, Math.min(REVENUE_BY_TIER.length - 1, next));
+      });
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const selected = selectedIndex !== null ? REVENUE_BY_TIER[selectedIndex] : null;
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap gap-2">
@@ -60,9 +162,9 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
           );
         })}
       </div>
-      <div className="mt-2 min-h-0 flex-1">
+      <div ref={chartRef} className="relative mt-2 min-h-0 flex-1 cursor-pointer">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={REVENUE_BY_TIER} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
+          <LineChart data={REVENUE_BY_TIER} margin={{ top: 10, right: 10, left: -12, bottom: 0 }} onClick={handleClick}>
             <CartesianGrid vertical={false} stroke="#E9E9E9" />
             <XAxis
               dataKey="month"
@@ -79,19 +181,71 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
               axisLine={false}
               tickFormatter={(v: number) => (v === 0 ? '0' : `${v}K`)}
             />
-            {TIER_SERIES.filter((s) => !hidden.includes(s.key)).map((s) => (
+            {selectedIndex !== null && selected && (
+              <ReferenceLine
+                segment={[
+                  { x: selected.month, y: 0 },
+                  { x: selected.month, y: 30 },
+                ]}
+                stroke="#026F4F"
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+              />
+            )}
+            {visible.map((s, si) => (
               <Line
                 key={s.key}
                 type="monotone"
                 dataKey={s.key}
                 stroke={s.color}
                 strokeWidth={2.5}
-                dot={false}
                 isAnimationActive={false}
+                activeDot={false}
+                dot={(props: any) => {
+                  const { index, cx, cy } = props;
+                  if (index !== selectedIndex) return <g key={`dot-${s.key}-${index}`} />;
+                  return (
+                    <circle
+                      key={`dot-${s.key}-${index}`}
+                      cx={cx}
+                      cy={cy}
+                      r={5}
+                      fill={s.color}
+                      ref={
+                        si === 0
+                          ? (node: SVGCircleElement | null) => {
+                              if (!node) return;
+                              setDotPos((prev) =>
+                                prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
+                              );
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                }}
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
+
+        {selected && dotPos && (
+          <div
+            className="pointer-events-none absolute z-10"
+            style={{ left: dotPos.x, top: dotPos.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
+          >
+            <div className="rounded-[10px] border border-[#E9E9E9] bg-white p-3 shadow-md whitespace-nowrap">
+              <p className="text-sm font-semibold text-[#2D2F33]">{label(selected.month)}</p>
+              {visible.map((s) => (
+                <p key={s.key} className="mt-1 flex items-center gap-1.5 text-sm">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                  <span className="text-[#686868]">{s.key}</span>
+                  <span className="font-semibold text-[#2D2F33]">${(selected as any)[s.key]}K</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -141,6 +295,8 @@ export default function SuperAdminDashboardPage() {
   const locale = useLocale();
   const isAr = locale === 'ar';
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  // Query-driven expiring modal: ?modal=expiring-subscriptions
+  const [expiringOpen, setExpiringOpen] = useQueryModal('expiring-subscriptions');
 
   const KPI_CARDS = [
     { key: 'totalRestaurants',    value: '250',   delta: t('deltaYesterday', { value: '12.5%' }), icon: Store },
@@ -152,7 +308,7 @@ export default function SuperAdminDashboardPage() {
       delta: t('deltaLastMonth', { value: '12.5%' }), icon: UtensilsCrossed,
     },
     { key: 'activeUsersLive',         value: '342', icon: Armchair },
-    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock, viewHref: '/restaurants?filter=expiring' as const },
+    { key: 'expiringSubscriptions',   value: '25',  note: t('expiringNote'), icon: Clock, viewModal: 'expiring-subscriptions' as const },
   ];
 
   return (
@@ -181,14 +337,15 @@ export default function SuperAdminDashboardPage() {
                 ) : (
                   <p className="text-[#989898] text-base">{'note' in card ? card.note : ''}</p>
                 )}
-                {'viewHref' in card && card.viewHref ? (
-                  <Link
-                    href={card.viewHref}
+                {'viewModal' in card && card.viewModal ? (
+                  <button
+                    type="button"
+                    onClick={() => setExpiringOpen(true)}
                     className="inline-flex w-fit self-end items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
                   >
                     {t('view')}
                     <ArrowRight size={15} className="rtl:scale-x-[-1]" />
-                  </Link>
+                  </button>
                 ) : null}
               </div>
             );
@@ -286,6 +443,8 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
       </main>
+
+      {expiringOpen && <ExpiringSubscriptionsModal onClose={() => setExpiringOpen(false)} />}
     </div>
   );
 }

@@ -80,6 +80,7 @@ export default function CreateRestaurantModal({
   const router = useRouter();
   const [step, setStep] = useState<Step>('info');
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [createdId, setCreatedId] = useState('');
 
   // S1 — restaurant & owner
@@ -212,7 +213,6 @@ export default function CreateRestaurantModal({
 
   // Bug-18: one-click share of the new owner's login (native share sheet,
   // WhatsApp-capable) with clipboard fallback.
-  const [shared, setShared] = useState(false);
   const handleShareCredentials = async () => {
     const text = credentialsText();
     try {

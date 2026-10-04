@@ -127,10 +127,7 @@ export default function RestaurantsPage() {
         </div>
 
         {expiringOnly && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#FFF7E6] px-6 py-4 outline outline-1 outline-[#F5C518]/40">
-            <p className="text-sm font-medium text-[#2D2F33]">
-              Showing subscriptions expiring soon — sorted by expiry date (soonest first).
-            </p>
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <button
               onClick={() => setExpiringOnly(false)}
               className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#026F4F] outline outline-1 outline-[#026F4F]/30 transition-colors hover:bg-[#026F4F] hover:text-white"

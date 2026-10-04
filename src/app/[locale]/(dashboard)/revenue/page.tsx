@@ -23,6 +23,7 @@ import { mockLedger } from '@/data/mockData';
 import { getRestaurants } from '@/data/restaurantStore';
 import { planPill } from '@/data/figmaPlans';
 import { locField } from '@/lib/localize';
+import { useQueryModal } from '@/lib/use-query-modal';
 import { TransactionLedger } from '@/types/admin';
 
 // Source of truth: Figma frame "Revenue & Reports" (1939:1060).
@@ -170,8 +171,9 @@ export default function RevenueReportsPage() {
   const locale = useLocale();
   const isAr = locale === 'ar';
   const [ledger, setLedger] = useState<TransactionLedger[]>(mockLedger);
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [isEntryOpen, setIsEntryOpen] = useState(false);
+  // Query-driven overlays: ?modal=export-ledger, ?modal=log-entry
+  const [exportOpen, setExportOpen] = useQueryModal('export-ledger');
+  const [entryOpen, setEntryOpen] = useQueryModal('log-entry');
   // Bar select/deselect (Owner Reports & Analytics pattern).
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
@@ -205,7 +207,7 @@ export default function RevenueReportsPage() {
       },
       ...prev,
     ]);
-    setIsEntryOpen(false);
+    setEntryOpen(false);
   };
 
   return (
@@ -478,7 +480,7 @@ export default function RevenueReportsPage() {
             <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('invoices')}</h3>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setIsExportOpen(true)}
+                onClick={() => setExportOpen(true)}
                 className="h-12 px-5 rounded-full bg-white hover:bg-gray-100 border border-gray-100 text-sm font-medium text-[#2D2F33] flex items-center gap-2 transition-colors"
               >
                 <ListFilter size={16} className="text-[#989898]" />
@@ -486,7 +488,7 @@ export default function RevenueReportsPage() {
                 <Download size={16} className="text-[#989898]" />
               </button>
               <button
-                onClick={() => setIsEntryOpen(true)}
+                onClick={() => setEntryOpen(true)}
                 className="h-12 px-5 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white text-sm font-medium flex items-center gap-2 transition-all"
               >
                 <Plus size={18} />
@@ -551,14 +553,14 @@ export default function RevenueReportsPage() {
       </main>
 
       <ExportLedgerModal
-        isOpen={isExportOpen}
+        isOpen={exportOpen}
         placement="right"
-        onClose={() => setIsExportOpen(false)}
+        onClose={() => setExportOpen(false)}
         onExport={(start, end) => downloadCSV(`ecosystem_ledger_${start}_to_${end}.csv`, ledger)}
       />
 
-      {isEntryOpen && (
-        <LogEntryModal onClose={() => setIsEntryOpen(false)} onSave={handleSaveEntry} />
+      {entryOpen && (
+        <LogEntryModal onClose={() => setEntryOpen(false)} onSave={handleSaveEntry} />
       )}
     </div>
   );

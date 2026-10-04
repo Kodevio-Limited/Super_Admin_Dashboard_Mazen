@@ -117,7 +117,7 @@ export default function UsersPage() {
     if (details?.isNew) addUser(user);
     else updateUser(user.id, user);
     setUsers(getUsers());
-    setDetails(null);
+    closeDetails();
   };
 
   return (
@@ -143,7 +143,7 @@ export default function UsersPage() {
             />
           </div>
           <button
-            onClick={() => setIsFilterOpen(true)}
+            onClick={() => setFilterOpen(true)}
             aria-label={t('filterUser')}
             className="w-14 h-14 rounded-full bg-white hover:bg-gray-100 border border-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors relative"
           >
@@ -153,7 +153,7 @@ export default function UsersPage() {
             )}
           </button>
           <button
-            onClick={() => setDetails({ user: EMPTY_USER, isNew: true, mode: 'edit' })}
+            onClick={() => openDetails(EMPTY_USER, true, 'edit')}
             className="h-14 px-6 rounded-full bg-[#026F4F] hover:bg-[#01533B] text-white font-medium shadow-md flex items-center gap-2 transition-all ms-auto"
           >
             <Plus size={20} />
@@ -211,7 +211,7 @@ export default function UsersPage() {
                     </span>
                     <span className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => setDetails({ user: u, isNew: false, mode: 'edit' })}
+                        onClick={() => openDetails(u, false, 'edit')}
                         aria-label={t('editUser', { name: u.name })}
                         className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                       >
@@ -219,7 +219,7 @@ export default function UsersPage() {
                       </button>
                       {/* Bug-19: row delete with confirm (action can't be undone). */}
                       <button
-                        onClick={() => setDeleteTarget(u)}
+                        onClick={() => openDelete(u)}
                         aria-label={`${tc('delete')} ${u.name}`}
                         className="w-11 h-11 rounded-lg bg-[#FDECEC] hover:bg-[#E85E5E] flex items-center justify-center text-[#E85E5E] hover:text-white transition-colors"
                       >
@@ -234,42 +234,43 @@ export default function UsersPage() {
         </div>
       </main>
 
-      {isFilterOpen && (
+      {filterOpen && (
         <UserFilterModal
           initial={filters}
           restaurants={restaurants.map((r) => ({ value: r.name, label: locField(locale, r, 'name') }))}
-          onClose={() => setIsFilterOpen(false)}
+          onClose={() => setFilterOpen(false)}
           onApply={(f) => {
             setFilters(f);
-            setIsFilterOpen(false);
+            setFilterOpen(false);
           }}
         />
       )}
 
-      {details && (
+      {detailsOpen && details && (
         <UserDetailsModal
           key={`${details.user.id || 'new'}-${details.mode}`}
           user={details.user}
           isNew={details.isNew}
           mode={details.mode}
           restaurants={restaurants.map((r) => ({ name: r.name, name_ar: r.name_ar, branches: r.branches.map((b) => ({ name: b.name, name_ar: b.name_ar })) }))}
-          onClose={() => setDetails(null)}
+          onClose={closeDetails}
           onSave={saveUser}
           onDeleteRequest={() => {
-            setDeleteTarget(details.user);
-            setDetails(null);
+            const target = details.user;
+            closeDetails();
+            openDelete(target);
           }}
         />
       )}
 
-      {deleteTarget && (
+      {deleteOpen && deleteTarget && (
         <DeleteUserDialog
           userName={deleteTarget.name}
-          onClose={() => setDeleteTarget(null)}
+          onClose={closeDelete}
           onConfirm={() => {
             deleteUser(deleteTarget.id);
             setUsers(getUsers());
-            setDeleteTarget(null);
+            closeDelete();
           }}
         />
       )}

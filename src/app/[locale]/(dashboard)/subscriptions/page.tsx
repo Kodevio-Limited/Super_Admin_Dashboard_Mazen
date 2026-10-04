@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Plus, SquarePen, Trash2, Users } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import PlanFormModal from '@/components/modals/PlanFormModal';
+import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-modal';
 import {
   FIGMA_TIERS,
   FIGMA_CYCLES,
@@ -27,7 +28,33 @@ export default function SubscriptionsPage() {
   const [scope, setScope] = useState<'Restaurant' | 'Branch'>('Restaurant');
   const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
   const [customPlans, setCustomPlans] = useState<CustomPlan[]>([]);
+  // Query-driven plan form: ?modal=plan-form&kind=Restaurant|Branch[&id=planId]
+  const [planFormOpen, setPlanFormOpen] = useQueryModal('plan-form');
   const [planForm, setPlanForm] = useState<{ kind: 'Restaurant' | 'Branch'; editing: CustomPlan | null } | null>(null);
+
+  const openPlanForm = (kind: 'Restaurant' | 'Branch', editing: CustomPlan | null) => {
+    setPlanForm({ kind, editing });
+    writeQueryParam('kind', kind, false);
+    writeQueryParam('id', editing?.id ?? null, false);
+    setPlanFormOpen(true);
+  };
+  const closePlanForm = () => {
+    setPlanForm(null);
+    setPlanFormOpen(false);
+    writeQueryParam('kind', null, false);
+    writeQueryParam('id', null, false);
+  };
+
+  // Cold load: ?modal=plan-form&kind= reopens the form (edits resolve when possible).
+  useEffect(() => {
+    if (readQueryParam('modal') !== 'plan-form') return;
+    const kind = readQueryParam('kind');
+    if (kind !== 'Restaurant' && kind !== 'Branch') return;
+    const id = readQueryParam('id');
+    const editing = id ? (customPlans.find((p) => p.id === id) ?? null) : null;
+    setPlanForm({ kind, editing });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [deleteArmed, setDeleteArmed] = useState<string | null>(null);
 
   const scopedCustom = customPlans.filter((p) => p.kind === scope);
@@ -150,7 +177,7 @@ export default function SubscriptionsPage() {
                   plan={plan}
                   billingCycle={billingCycle}
                   deleteArmed={deleteArmed === plan.id}
-                  onEdit={() => setPlanForm({ kind: plan.kind, editing: plan })}
+                  onEdit={() => openPlanForm(plan.kind, plan)}
                   onDelete={() => {
                     if (deleteArmed === plan.id) {
                       setCustomPlans((prev) => prev.filter((p) => p.id !== plan.id));
@@ -161,7 +188,7 @@ export default function SubscriptionsPage() {
               ))}
 
               <button
-                onClick={() => setPlanForm({ kind: 'Restaurant', editing: null })}
+                onClick={() => openPlanForm('Restaurant', null)}
                 className="rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#026F4F] text-[#989898] hover:text-[#026F4F] flex flex-col items-center justify-center gap-4 min-h-[320px] transition-colors"
               >
                 <Plus size={44} strokeWidth={1.5} />
@@ -171,8 +198,8 @@ export default function SubscriptionsPage() {
           ) : (
             <BranchPlans
               customPlans={scopedCustom}
-              onCreate={() => setPlanForm({ kind: 'Branch', editing: null })}
-              onEdit={(plan) => setPlanForm({ kind: plan.kind, editing: plan })}
+              onCreate={() => openPlanForm('Branch', null)}
+              onEdit={(plan) => openPlanForm(plan.kind, plan)}
               onDelete={(plan) => {
                 if (deleteArmed === plan.id) {
                   setCustomPlans((prev) => prev.filter((p) => p.id !== plan.id));
@@ -185,13 +212,13 @@ export default function SubscriptionsPage() {
         </div>
       </main>
 
-      {planForm && (
+      {planFormOpen && planForm && (
         <PlanFormModal
           key={`${planForm.kind}-${planForm.editing?.id || 'new'}`}
           isOpen
           kind={planForm.kind}
           editing={planForm.editing}
-          onClose={() => setPlanForm(null)}
+          onClose={closePlanForm}
           onSave={handleSavePlan}
         />
       )}

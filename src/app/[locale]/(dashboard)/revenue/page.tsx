@@ -65,10 +65,10 @@ function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
         <table className="w-full text-start border-collapse min-w-[760px]">
           <thead>
             <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-              <th className="whitespace-nowrap py-3 px-4 rounded-s-lg">{t('columns.restaurant')}</th>
-              <th className="whitespace-nowrap py-3 px-4">{t('columns.planTier')}</th>
-              <th className="whitespace-nowrap py-3 px-4">{t('columns.revenue')}</th>
-              <th className="whitespace-nowrap py-3 px-4">Overdue</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.planTier')}</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.revenue')}</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start">Overdue</th>
               <th className="whitespace-nowrap py-3 px-4 rounded-e-lg">Contact</th>
             </tr>
           </thead>
@@ -405,16 +405,16 @@ export default function RevenueReportsPage() {
               <table className="w-full text-start border-collapse min-w-[560px]">
                 <thead>
                   <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-                    <th className="py-3 px-4 rounded-s-lg">
+                    <th className="py-3 px-4 text-start rounded-s-lg">
                       <span className="inline-flex items-center gap-1">
                         {t('columns.date')}
                         <ChevronUp size={13} />
                       </span>
                     </th>
-                    <th className="py-3 px-4">{t('columns.restaurant')}</th>
-                    <th className="py-3 px-4">{t('columns.revenue')}</th>
-                    <th className="py-3 px-4">{t('columns.orders')}</th>
-                    <th className="py-3 px-4 rounded-e-lg">{t('columns.planTier')}</th>
+                    <th className="py-3 px-4 text-start">{t('columns.restaurant')}</th>
+                    <th className="py-3 px-4 text-start">{t('columns.revenue')}</th>
+                    <th className="py-3 px-4 text-start">{t('columns.orders')}</th>
+                    <th className="py-3 px-4 text-start rounded-e-lg">{t('columns.planTier')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
@@ -472,11 +472,11 @@ export default function RevenueReportsPage() {
             <table className="w-full text-start border-collapse min-w-[720px]">
               <thead>
                 <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-                  <th className="py-3 px-4 rounded-s-lg">{t('columns.restaurant')}</th>
-                  <th className="py-3 px-4">{t('columns.planTier')}</th>
-                  <th className="py-3 px-4">{t('columns.revenue')}</th>
-                  <th className="py-3 px-4">Overdue</th>
-                  <th className="py-3 px-4 rounded-e-lg">Contact</th>
+                  <th className="py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
+                  <th className="py-3 px-4 text-start">{t('columns.planTier')}</th>
+                  <th className="py-3 px-4 text-start">{t('columns.revenue')}</th>
+                  <th className="py-3 px-4 text-start">Overdue</th>
+                  <th className="py-3 px-4 text-start rounded-e-lg">Contact</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">

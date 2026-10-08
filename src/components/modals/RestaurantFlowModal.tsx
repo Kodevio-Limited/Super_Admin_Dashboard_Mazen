@@ -24,6 +24,7 @@ import ManualPlanActivationModal from './ManualPlanActivationModal';
 import ManualActivationModal from './ManualActivationModal';
 import ActionNotAllowedModal, { BlockedBranchAction } from './ActionNotAllowedModal';
 import { useQueryModal } from '../../lib/use-query-modal';
+import { useBodyScrollLock } from '../../lib/useModalShell';
 
 // Source of truth: Figma frames 1862:762 (Overview), 1465:821 (Branches),
 // 1508:1274 (Add branch), 1511:1544 (Main branch), 1512:1785 (Subscription),
@@ -653,6 +654,8 @@ export default function RestaurantFlowModal({
 }) {
   const t = useTranslations('sa.restaurantModal');
   const ts = useTranslations('common.status');
+  // Full-screen shell — the restaurants list behind it must not scroll.
+  useBodyScrollLock(true);
   const locale = useLocale();
   const isAr = locale === 'ar';
   const tierName = (tier: FigmaTier) => (isAr ? tierArLabel(tier) : tier);

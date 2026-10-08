@@ -10,6 +10,7 @@ import {
   ChevronRight, Menu, X,
 } from 'lucide-react';
 import { LanguageToggle } from './LanguageToggle';
+import { useBodyScrollLock } from '../lib/useModalShell';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -21,6 +22,8 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
   const t = useTranslations('sa.nav');
   const tm = useTranslations('sa.modals');
   const [mobileOpen, setMobileOpen] = useState(false);
+  // The mobile overlay sidebar dims the page; keep it from scrolling behind.
+  useBodyScrollLock(mobileOpen);
 
   const navItems = [
     { name: t('dashboard'),        href: '/',            icon: LayoutDashboard },

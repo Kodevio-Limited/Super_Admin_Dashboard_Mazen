@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, Search, ListFilter, SquarePen, Trash2 } from 'lucide-react';
+import { Plus, Search, ListFilter, Trash2 } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import UserDetailsModal, { rolePill, roleShort } from '@/components/modals/UserDetailsModal';
 import UserFilterModal, { UserFilters } from '@/components/modals/UserFilterModal';
@@ -215,7 +215,7 @@ export default function UsersPage() {
                         aria-label={t('editUser', { name: u.name })}
                         className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                       >
-                        <SquarePen size={18} />
+                        <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
                       </button>
                       {/* Bug-19: row delete with confirm (action can't be undone). */}
                       <button

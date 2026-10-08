@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus, Trash2, Share2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -114,11 +114,16 @@ export default function CreateRestaurantModal({
   useEscapeToClose(isOpen, onClose);
 
   // Query-driven step: ?modal=create-restaurant[&step=branches|plan|credentials|done]
+  // wasOpen guard: the modal is always mounted, so on first (closed) mount we
+  // must NOT clear `step` — otherwise deep links never restore the step.
+  const wasOpenRef = useRef(false);
   useEffect(() => {
     if (!isOpen) {
-      writeQueryParam('step', null, false);
+      if (wasOpenRef.current) writeQueryParam('step', null, false);
+      wasOpenRef.current = false;
       return;
     }
+    wasOpenRef.current = true;
     const s = readQueryParam('step');
     if (s === 'branches' || s === 'plan' || s === 'credentials' || s === 'done') {
       setStep(s);

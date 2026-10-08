@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, ChevronUp, ChevronDown, Building2, SquarePen } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown, Building2 } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import { getRestaurants, addRestaurant } from '@/data/restaurantStore';
 import { Restaurant } from '@/types/admin';
@@ -185,7 +186,7 @@ export default function RestaurantsPage() {
                           aria-label={`${tc('edit')} ${locField(locale, rest, 'name')}`}
                           className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
                         >
-                          <SquarePen size={18} />
+                          <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
                         </button>
                       </span>
                     </div>

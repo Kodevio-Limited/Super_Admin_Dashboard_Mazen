@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, SquarePen, Trash2, Users } from 'lucide-react';
+import { Plus, Trash2, Users } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import PlanFormModal from '@/components/modals/PlanFormModal';
 import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-modal';
@@ -160,7 +161,7 @@ export default function SubscriptionsPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="w-10 h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-[#686868]">
-                          <SquarePen size={17} />
+                          <Image src="/images/figma/pencil.svg" alt="" width={17} height={17} className="size-[17px]" />
                         </span>
                         <span className="w-10 h-10 rounded-lg bg-[#E05252] flex items-center justify-center text-white">
                           <Trash2 size={17} />
@@ -283,7 +284,7 @@ function CustomPlanCard({
             aria-label={`${tc('edit')} ${plan.name}`}
             className="w-10 h-10 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] transition-colors"
           >
-            <SquarePen size={17} />
+            <Image src="/images/figma/pencil.svg" alt="" width={17} height={17} className="size-[17px]" />
           </button>
           <button
             onClick={onDelete}

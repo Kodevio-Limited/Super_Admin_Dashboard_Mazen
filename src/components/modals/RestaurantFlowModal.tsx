@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { locField, toArDate, planNameAr, tierArLabel, billingCycleAr, billingPerLabel } from '../../lib/localize';
 import {
@@ -12,7 +13,6 @@ import {
   Clock,
   Plus,
   Check,
-  SquarePen,
 } from 'lucide-react';
 import { mockPlans } from '../../data/mockData';
 import { getRestaurants, updateRestaurant, deleteRestaurant } from '../../data/restaurantStore';
@@ -261,7 +261,7 @@ function BranchDetailsPanel({
             title={t('editBranchDetails')}
             className="w-10 h-10 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
           >
-            <SquarePen size={18} />
+            <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
           </button>
           <button
             role="switch"

@@ -19,6 +19,7 @@ import {
 import SelectableAreaChart from '@/components/SelectableAreaChart';
 import Topbar from '@/components/Topbar';
 import LeftPanel from '@/components/LeftPanel';
+import { Link } from '@/i18n/routing';
 import ExportLedgerModal from '@/components/modals/ExportLedgerModal';
 import LogEntryModal, { LedgerEntry } from '@/components/modals/LogEntryModal';
 import { mockLedger } from '@/data/mockData';
@@ -81,7 +82,13 @@ function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
                 <td className="whitespace-nowrap py-4 px-4">
                   <span className="inline-block rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
                 </td>
-                <td className="whitespace-nowrap py-4 px-4 text-[#686868]"><bdi dir="ltr">{row.contact}</bdi></td>
+                <td className="whitespace-nowrap py-4 px-4 text-[#686868]">
+                  <span className="flex flex-col gap-0.5">
+                    <bdi dir="ltr">{row.contact}</bdi>
+                    {/* Bug-3: phone number next to the email. */}
+                    {row.phone && <bdi dir="ltr" className="text-xs">{row.phone}</bdi>}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -93,15 +100,82 @@ function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
 
 // --- Delayed payments list (Bug-20). TODO(api): GET /billing/delayed.
 // Mock rows shaped like the ledger; count matches the KPI (13 total,
-// showing the most overdue first).
+// showing the most overdue first). Bug-3: contact now carries a phone
+// number under the email (all defaults to Egypt +20).
 const DELAYED_ROWS = [
-  { restaurant: 'Casa Mia Italian', plan: 'Custom Plan', amount: '$299.00', overdue: '21 days', contact: 'marcus@casamiapizza.com' },
-  { restaurant: 'Bistro Belle', plan: 'Basic Plan', amount: '$19.00', overdue: '18 days', contact: 'chloe@bistrobelle.com' },
-  { restaurant: "L'Étoile Grill", plan: 'Pro Plan', amount: '$63.00', overdue: '15 days', contact: 'tariq@grilletoile.com' },
-  { restaurant: 'The Shamrock Pub', plan: 'Pro Plan', amount: '$63.00', overdue: '12 days', contact: 'liam@dublinpub.com' },
-  { restaurant: 'Tokyo Ramen House', plan: 'Enterprise Plan', amount: '$191.00', overdue: '9 days', contact: 'alexander@tokyodining.com' },
-  { restaurant: 'Burger Haven', plan: 'Basic Plan', amount: '$19.00', overdue: '6 days', contact: 'omar@burgerhaven.com' },
+  { restaurant: 'Casa Mia Italian', plan: 'Custom Plan', amount: '$299.00', overdue: '21 days', contact: 'marcus@casamiapizza.com', phone: '+20 100 441 3829' },
+  { restaurant: 'Bistro Belle', plan: 'Basic Plan', amount: '$19.00', overdue: '18 days', contact: 'chloe@bistrobelle.com', phone: '+20 122 750 9931' },
+  { restaurant: "L'Étoile Grill", plan: 'Pro Plan', amount: '$63.00', overdue: '15 days', contact: 'tariq@grilletoile.com', phone: '+20 155 210 7462' },
+  { restaurant: 'The Shamrock Pub', plan: 'Pro Plan', amount: '$63.00', overdue: '12 days', contact: 'liam@dublinpub.com', phone: '+20 128 904 5510' },
+  { restaurant: 'Tokyo Ramen House', plan: 'Enterprise Plan', amount: '$191.00', overdue: '9 days', contact: 'alexander@tokyodining.com', phone: '+20 111 678 2245' },
+  { restaurant: 'Burger Haven', plan: 'Basic Plan', amount: '$19.00', overdue: '6 days', contact: 'omar@burgerhaven.com', phone: '+20 106 338 8870' },
 ];
+
+// Bug-9: "View All" report — every restaurant, every branch, with the same
+// analytics for the selected time frame. Deep link: /revenue?modal=detailed-report-all.
+// TODO(api): GET /reports/detailed?scope=all.
+function DetailedReportAllModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('sa.revenue');
+  const locale = useLocale();
+  const restaurants = [...getRestaurants()].sort(
+    (a, b) => b.totalRevenue - a.totalRevenue,
+  );
+  return (
+    <LeftPanel onClose={onClose} labelledBy={t('detailedReportAll')} widthClass="w-[min(920px,94vw)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-bold text-[#2D2F33] text-2xl">{t('detailedReportAll')}</h3>
+          <p className="text-[#989898] mt-1">{t('perMonth')} — {t('timeframeNote')}</p>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors shrink-0"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full text-start border-collapse min-w-[700px]">
+          <thead>
+            <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+              <th className="whitespace-nowrap py-3 px-4 text-start rounded-s-lg">{t('columns.restaurantBranch')}</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.revenue')}</th>
+              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.orders')}</th>
+              <th className="whitespace-nowrap py-3 px-4 rounded-e-lg">{t('columns.planTier')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-sm">
+            {restaurants.map((r) => (
+              <React.Fragment key={r.id}>
+                <tr>
+                  <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33] text-[15px]">{locField(locale, r, 'name')}</td>
+                  <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#026F4F]" dir="ltr"><bdi>${r.totalRevenue.toLocaleString()}</bdi></td>
+                  <td className="whitespace-nowrap py-4 px-4 text-[#2D2F33]">{r.totalOrders.toLocaleString()}</td>
+                  <td className="whitespace-nowrap py-4 px-4">
+                    <span className={`inline-block text-xs font-medium px-3.5 py-1.5 rounded-full ${planPill(locField(locale, r, 'planName') || r.planName, locale).classes}`}>
+                      {planPill(locField(locale, r, 'planName') || r.planName, locale).label}
+                    </span>
+                  </td>
+                </tr>
+                {r.branches.map((b) => (
+                  <tr key={b.id} className="bg-[#F8F9FA]/60">
+                    <td className="py-3 px-4 ps-10 text-[#686868]">{locField(locale, b, 'name')}</td>
+                    <td className="py-3 px-4 text-[#686868]" dir="ltr"><bdi>${(b.revenueToday || 0).toLocaleString()}</bdi></td>
+                    <td className="py-3 px-4 text-[#686868]">{b.ordersToday.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-[#686868]">
+                      {planPill(locField(locale, b, 'planName') || r.planName, locale).label}
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </LeftPanel>
+  );
+}
 
 // --- Revenue Over Time (traced from the Figma SVG; x slots 8-9 are literal
 // "Text" placeholders in the design, rendered here as Aug / Sep) ---
@@ -126,24 +200,30 @@ const REVENUE_BY_PLAN = [
   { plan: 'Custom', value: 12, color: '#B93DBE' },
 ];
 
-// --- Subscriptions expiring soon, per month (counts) ---
-const EXPIRING_OVER_TIME = [
-  { month: 'Jan', value: 4 },
-  { month: 'Feb', value: 6 },
-  { month: 'Mar', value: 5 },
-  { month: 'Apr', value: 8 },
-  { month: 'May', value: 7 },
-  { month: 'Jun', value: 10 },
-  { month: 'Jul', value: 9 },
-  { month: 'Aug', value: 12 },
-  { month: 'Sep', value: 14 },
-];
+// Earliest upcoming expiries appear in the KPI-side number card (Bug-6).
 
 // --- Detailed Report (verbatim Figma rows + parallel Arabic fields) ---
 const DETAILED_REPORT = [
   { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'El Gaucho Steakhouse', restaurant_ar: 'مطعم إل غاوتشو', revenue: '$1,240.00', orders: 142, tier: 'ENTERPRISE', tier_ar: 'المؤسسية' },
   { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'The Rustic Spoon', restaurant_ar: 'الملعقة الريفية', revenue: '$890.50', orders: 89, tier: 'PRO', tier_ar: 'الاحترافية' },
   { date: 'Aug 07, 2026', date_ar: '7 أغسطس 2026', restaurant: 'Burger Haven', restaurant_ar: 'برجر هافن', revenue: '$945.20', orders: 112, tier: 'BASIC', tier_ar: 'الأساسية' },
+];
+
+// --- Financial report (Bug-7): revenue / expenses / gross profit for the
+// selected time frame + itemized detailed expenses. TODO(api): /reports/pl.
+const TIMEFRAME_NOTE_AR = 'للمدى الزمني المحدد';
+const FINANCIAL_SUMMARY = [
+  { key: 'totalRevenue', value: '$2,900.00', valueClass: 'text-[#026F4F]' },
+  { key: 'expenses', value: '$1,130.00', valueClass: 'text-[#E52B2B]' },
+  { key: 'grossProfit', value: '$1,770.00', valueClass: 'text-[#2D2F33]' },
+] as const;
+
+const DETAILED_EXPENSES = [
+  { category: 'Cloud & Hosting', category_ar: 'الاستضافة والسحابة', amount: '$480.00', share: '42%' },
+  { category: 'Payment Processing Fees', category_ar: 'رسوم معالجة الدفعات', amount: '$250.00', share: '22%' },
+  { category: 'Support Staff Salaries', category_ar: 'رواتب فريق الدعم', amount: '$240.00', share: '21%' },
+  { category: 'SMS & Email Gateway', category_ar: 'بوابة الرسائل والبريد', amount: '$110.00', share: '10%' },
+  { category: 'Marketing & Ads', category_ar: 'التسويق والإعلانات', amount: '$50.00', share: '5%' },
 ];
 
 const RECENT_UPDATES = [
@@ -226,6 +306,8 @@ export default function RevenueReportsPage() {
   const [exportOpen, setExportOpen] = useQueryModal('export-ledger');
   const [entryOpen, setEntryOpen] = useQueryModal('log-entry');
   const [delayedOpen, setDelayedOpen] = useQueryModal('delayed-payments');
+  // Bug-9: full report across every restaurant + branch (?modal=detailed-report-all).
+  const [fullReportOpen, setFullReportOpen] = useQueryModal('detailed-report-all');
   // Bar select/deselect (Owner Reports & Analytics pattern).
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
@@ -384,15 +466,11 @@ export default function RevenueReportsPage() {
 
           <div className="bg-white rounded-xl p-[22px] lg:col-span-2 xl:col-span-1">
             <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('expiringChart')}</h3>
-            <div className="h-[273px] w-full mt-4">
-              <SelectableAreaChart
-                data={EXPIRING_OVER_TIME.map((d) => ({ label: isAr ? (MONTH_AR[d.month] ?? d.month) : d.month, value: d.value }))}
-                formatValue={(v) => `${v}`}
-                yDomain={[0, 15]}
-                yTicks={[0, 5, 10, 15]}
-                formatTick={(v) => `${v}`}
-                gradientId="expiringFill"
-              />
+            {/* Bug-6: a count, not a graph. TODO(api): /subscriptions?expiringWithin=7d */}
+            <div className="mt-4 h-[273px] flex flex-col items-center justify-center gap-2 text-center">
+              <p className="font-semibold text-[56px] leading-tight text-[#2D2F33]">25</p>
+              <p className="text-[#989898] text-sm">{t('expiringNext7')}</p>
+              <p className="text-[#989898] text-sm">{t('expiringNext30')}<span className="font-semibold text-[#2D2F33]"> 41</span></p>
             </div>
           </div>
         </div>
@@ -400,18 +478,24 @@ export default function RevenueReportsPage() {
         {/* Detailed Report + Top Performers */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 bg-white rounded-xl p-[22px]">
-            <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('detailedReport')}</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('detailedReport')}</h3>
+              {/* Bug-9: full list — every restaurant, every branch, same metrics.
+                  Deep link: /revenue?modal=detailed-report-all */}
+              <button
+                type="button"
+                onClick={() => setFullReportOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
+              >
+                {tc('viewAll')}
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-start border-collapse min-w-[560px]">
                 <thead>
                   <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-                    <th className="py-3 px-4 text-start rounded-s-lg">
-                      <span className="inline-flex items-center gap-1">
-                        {t('columns.date')}
-                        <ChevronUp size={13} />
-                      </span>
-                    </th>
-                    <th className="py-3 px-4 text-start">{t('columns.restaurant')}</th>
+                    <th className="py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
                     <th className="py-3 px-4 text-start">{t('columns.revenue')}</th>
                     <th className="py-3 px-4 text-start">{t('columns.orders')}</th>
                     <th className="py-3 px-4 text-start rounded-e-lg">{t('columns.planTier')}</th>
@@ -420,7 +504,6 @@ export default function RevenueReportsPage() {
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {DETAILED_REPORT.map((row, i) => (
                     <tr key={i}>
-                      <td className="py-4 px-4 text-[#686868]">{isAr ? row.date_ar : row.date}</td>
                       <td className="py-4 px-4 font-semibold text-[#2D2F33]">{isAr ? row.restaurant_ar : row.restaurant}</td>
                       <td className="py-4 px-4 text-[#2D2F33]"><bdi dir="ltr">{row.revenue}</bdi></td>
                       <td className="py-4 px-4 text-[#2D2F33]">{row.orders}</td>
@@ -437,7 +520,17 @@ export default function RevenueReportsPage() {
           </div>
 
           <div className="lg:col-span-2 bg-white rounded-xl p-[22px]">
-            <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('topPerformers')}</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('topPerformers')}</h3>
+              {/* Bug-4: view the restaurants behind the leaderboard. */}
+              <Link
+                href="/restaurants"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
+              >
+                {tc('view')}
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
             <div className="mt-4 divide-y divide-gray-100">
               {TOP_PERFORMERS.map((p, i) => (
                 <div key={i} className="flex items-center gap-3 py-4">
@@ -456,6 +549,53 @@ export default function RevenueReportsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Financial report (Bug-7): revenue / expenses / gross profit per
+            selected time frame + detailed expenses. TODO(api): GET /reports/pl. */}
+        <div className="rounded-xl bg-white p-[22px]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-semibold text-[#2D2F33] text-2xl">{t('profitLoss')}</h3>
+            <span className="inline-flex items-center gap-1.5 border border-gray-200 bg-white rounded-full px-4 py-2 text-sm text-[#686868]">
+              {t('perMonth')}
+              <ChevronDown size={15} />
+            </span>
+          </div>
+
+          {/* Summary: revenue, expenses, gross profit */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-5">
+            {FINANCIAL_SUMMARY.map((row) => (
+              <div key={row.key} className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+                <p className="text-sm text-[#686868]">{t(row.key as any)}</p>
+                <p className={`mt-1 font-semibold text-[26px]`} dir="ltr">
+                  <bdi>{row.value}</bdi>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Detailed expenses: itemized line items */}
+          <h4 className="mt-7 font-semibold text-[#2D2F33] text-lg">{t('detailedExpenses')}</h4>
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-start border-collapse min-w-[540px]">
+              <thead>
+                <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+                  <th className="py-3 px-4 text-start rounded-s-lg">{t('expenseColumns.category')}</th>
+                  <th className="py-3 px-4 text-start">{t('expenseColumns.amount')}</th>
+                  <th className="py-3 px-4 text-start rounded-e-lg">{t('expenseColumns.share')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm">
+                {DETAILED_EXPENSES.map((row, i) => (
+                  <tr key={i}>
+                    <td className="py-4 px-4 font-medium text-[#2D2F33]">{locField(locale, row, 'category')}</td>
+                    <td className="py-4 px-4 text-[#2D2F33]" dir="ltr"><bdi>{row.amount}</bdi></td>
+                    <td className="py-4 px-4 text-[#686868]">{row.share}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -488,7 +628,13 @@ export default function RevenueReportsPage() {
                     <td className="py-4 px-4">
                       <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
                     </td>
-                    <td className="py-4 px-4 text-[#686868]"><bdi dir="ltr">{row.contact}</bdi></td>
+                    <td className="py-4 px-4 text-[#686868]">
+                      <span className="flex flex-col gap-0.5">
+                        <bdi dir="ltr">{row.contact}</bdi>
+                        {/* Bug-3: phone number next to the email. */}
+                        {row.phone && <bdi dir="ltr" className="text-xs">{row.phone}</bdi>}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -617,6 +763,10 @@ export default function RevenueReportsPage() {
       )}
 
       {delayedOpen && <DelayedPaymentsModal onClose={() => setDelayedOpen(false)} />}
+
+      {fullReportOpen && (
+        <DetailedReportAllModal onClose={() => setFullReportOpen(false)} />
+      )}
     </div>
   );
 }

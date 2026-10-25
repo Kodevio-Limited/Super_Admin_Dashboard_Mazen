@@ -287,7 +287,10 @@
       "createdAt": "تاريخ الإنشاء",
       "permissions": "الأذونات",
       "viewUser": "عرض {name}",
-      "editUser": "تعديل {name}"
+      "editUser": "تعديل {name}",
+      "usersCountLabel": "{count, plural, one {مستخدم واحد} two {مستخدمان} few {# مستخدمين} many {# مستخدمًا} other {# مستخدم}}",
+      "expandUsers": "توسيع المستخدمين",
+      "collapseUsers": "تقليص المستخدمين"
     },
     "revenue": {
       "title": "الإيرادات والتقارير",
@@ -306,6 +309,7 @@
       "columns": {
         "date": "التاريخ",
         "restaurant": "المطعم",
+        "restaurantBranch": "المطعم / الفرع",
         "revenue": "الإيرادات",
         "orders": "الطلبات",
         "planTier": "مستوى الخطة"
@@ -323,6 +327,19 @@
       "percentOfTotal": "{value} من الإجمالي",
       "actionRequired": "إجراء مطلوب",
       "detailedReport": "التقرير التفصيلي",
+      "detailedReportAll": "جميع المطاعم والفروع",
+      "timeframeNote": "للمدى الزمني المحدد",
+      "profitLoss": "التقرير المالي",
+      "expenses": "المصروفات",
+      "grossProfit": "إجمالي الربح",
+      "detailedExpenses": "المصروفات بالتفصيل",
+      "expenseColumns": {
+        "category": "الفئة",
+        "amount": "المبلغ",
+        "share": "من المصروفات"
+      },
+      "expiringNext7": "تنتهي خلال 7 أيام",
+      "expiringNext30": "تنتهي خلال 30 يومًا:",
       "topPerformers": "الأعلى أداءً",
       "recentUpdates": "آخر التحديثات",
       "revenueSnapshot": "لمحة الإيرادات",
@@ -739,6 +756,14 @@
       "cityCountryPlaceholder": "مثال: نيويورك، أمريكا",
       "fullAddress": "العنوان الكامل",
       "addressPlaceholder": "الشارع والرمز البريدي",
+      "taxId": "الرقم الضريبي",
+      "taxIdPlaceholder": "مثال: TAX-123-456",
+      "countryCode": "مفتاح الدولة",
+      "nationalNumberPlaceholder": "000-0000",
+      "customCategoryPlaceholder": "اكتب فئتك",
+      "branchPlans": "خطط الفروع",
+      "branchPlansDesc": "لكل فرع خطته الخاصة — اختر خطة لكل فرع",
+      "branchPlanLabel": "خطة الفرع {n}",
       "back": "رجوع",
       "done": "تم",
       "credentialsDesc": "أنشأنا تلقائيًا بيانات تسجيل الدخول لمالك المطعم. يرجى نسخها وحفظها.",

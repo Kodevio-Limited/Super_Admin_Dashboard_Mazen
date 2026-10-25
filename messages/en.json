@@ -287,7 +287,10 @@
       "permissions": "Permissions",
       "noUsersMatch": "No users match your search or filters.",
       "viewUser": "View {name}",
-      "editUser": "Edit {name}"
+      "editUser": "Edit {name}",
+      "usersCountLabel": "{count, plural, one {# User} other {# Users}}",
+      "expandUsers": "Expand users",
+      "collapseUsers": "Collapse users"
     },
     "revenue": {
       "title": "Revenue & Reports",
@@ -316,9 +319,23 @@
       "percentOfTotal": "{value} of total",
       "actionRequired": "Action Required",
       "detailedReport": "Detailed Report",
+      "detailedReportAll": "All Restaurants & Branches",
+      "timeframeNote": "for the selected time frame",
+      "profitLoss": "Financial Report",
+      "expenses": "Expenses",
+      "grossProfit": "Gross Profit",
+      "detailedExpenses": "Detailed Expenses",
+      "expenseColumns": {
+        "category": "Category",
+        "amount": "Amount",
+        "share": "Of Expenses"
+      },
+      "expiringNext7": "Expiring in the next 7 days",
+      "expiringNext30": "Expiring in the next 30 days:",
       "columns": {
         "date": "Date",
         "restaurant": "Restaurant",
+        "restaurantBranch": "Restaurant / Branch",
         "revenue": "Revenue",
         "orders": "Orders",
         "planTier": "Plan Tier"
@@ -739,6 +756,14 @@
       "cityCountryPlaceholder": "e.g. New York, USA",
       "fullAddress": "Full Address",
       "addressPlaceholder": "Street ZIP",
+      "taxId": "Tax ID",
+      "taxIdPlaceholder": "e.g. TAX-123-456",
+      "countryCode": "Country code",
+      "nationalNumberPlaceholder": "000-0000",
+      "customCategoryPlaceholder": "Type your category",
+      "branchPlans": "Branch Plans",
+      "branchPlansDesc": "Each branch can run its own plan — pick one per branch",
+      "branchPlanLabel": "Plan for branch {n}",
       "back": "Back",
       "done": "Done",
       "credentialsDesc": "We've automatically generated login credentials for the restaurant owner. Please copy them securely.",

@@ -62,6 +62,8 @@ export interface Restaurant {
   ownerName_ar?: string;
   ownerEmail: string;
   ownerPhone: string;
+  /** Tax registration number (client Bug-12a: Create flow step 1). */
+  taxId?: string;
   address: string;
   address_ar?: string;
   status: RestaurantStatus;

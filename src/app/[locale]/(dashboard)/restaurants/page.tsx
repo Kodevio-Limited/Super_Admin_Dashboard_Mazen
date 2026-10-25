@@ -148,7 +148,7 @@ export default function RestaurantsPage() {
                 <span>{t('columns.status')}</span>
                 <span>{t('columns.dateOfSub')}</span>
                 <span>{t('columns.subUntil')}</span>
-                <span className="sticky end-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)]">{t('columns.actions')}</span>
+                <span className="sticky end-0 bg-[#F8F9FA]">{t('columns.actions')}</span>
               </div>
 
               {visibleRestaurants.map((rest) => {
@@ -170,6 +170,10 @@ export default function RestaurantsPage() {
                           <p className="text-sm text-[#989898] mt-0.5">
                             <bdi dir="ltr">{rest.ownerName}</bdi> <span className="ms-3"><bdi dir="ltr">{rest.ownerEmail}</bdi></span>
                           </p>
+                          {/* Bug-1: owner's primary number under the email. */}
+                          {rest.ownerPhone && (
+                            <p className="text-sm text-[#989898] mt-0.5"><bdi dir="ltr">{rest.ownerPhone}</bdi></p>
+                          )}
                         </div>
                       </div>
                       <Dash />
@@ -180,7 +184,7 @@ export default function RestaurantsPage() {
                       <Dash />
                       <Dash />
                       <Dash />
-                      <span className="sticky end-0 bg-white shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
+                      <span className="sticky end-0 bg-white flex justify-end">
                         <button
                           onClick={() => openFlow({ restaurantId: rest.id })}
                           aria-label={`${tc('edit')} ${locField(locale, rest, 'name')}`}
@@ -195,18 +199,27 @@ export default function RestaurantsPage() {
                     {isOpen && (
                       <div className="mx-4 sm:mx-6 mb-4 bg-[#F8F9FA] rounded-2xl px-6 py-2 divide-y divide-gray-200/70">
                         {rest.branches.map((branch) => {
-                          const pill = planPill(locField(locale, rest, 'planName') || rest.planName, locale);
+                          const pill = planPill(locField(locale, branch, 'planName') || locField(locale, rest, 'planName'), locale);
                           return (
                             <div key={branch.id} className={`grid ${COLS} gap-4 py-4 items-center`}>
-                              <p className="font-semibold text-[#2D2F33] uppercase text-[15px]">
-                                {locField(locale, branch, 'name')}
-                              </p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[#2D2F33] uppercase text-[15px]">
+                                  {locField(locale, branch, 'name')}
+                                </p>
+                                {/* Bug-5: branch email & phone right in the list. */}
+                                {branch.managerEmail && (
+                                  <p className="text-sm text-[#989898] mt-0.5 truncate"><bdi dir="ltr">{branch.managerEmail}</bdi></p>
+                                )}
+                                {branch.phone && (
+                                  <p className="text-sm text-[#989898] mt-0.5"><bdi dir="ltr">{branch.phone}</bdi></p>
+                                )}
+                              </div>
                               <div>
                                 <span className={`inline-block text-sm font-medium px-4 py-1.5 rounded-full ${pill.classes}`}>
                                   {pill.label}
                                 </span>
                                 <p className="text-[15px] font-bold text-[#2D2F33] mt-1.5">
-                                  ${rest.planPrice.toLocaleString()}{' '}
+                                  ${(branch.monthlyFee || rest.planPrice).toLocaleString()}{' '}
                                   <span className="text-xs font-normal text-[#989898]">
                                     {t('perMonthBilling', { billing: rest.planBilling.toLowerCase() })}
                                   </span>
@@ -238,9 +251,16 @@ export default function RestaurantsPage() {
                                   );
                                 })()}
                               </div>
-                              {/* Bug-16: no branch-level edit buttons — editing lives in the restaurant modal. */}
-                              <span className="sticky end-0 bg-[#F8F9FA] shadow-[-8px_0_12px_-8px_rgba(0,0,0,0.15)] rtl:shadow-[8px_0_12px_-8px_rgba(0,0,0,0.15)] flex justify-end">
-                                <Dash />
+                              {/* Bug-10: edit each branch directly — opens the
+                                  branch Overview tab in the restaurant flow. */}
+                              <span className="sticky end-0 bg-[#F8F9FA] flex justify-end">
+                                <button
+                                  onClick={() => openFlow({ restaurantId: rest.id, branch: { id: branch.id, tab: 'Overview' } })}
+                                  aria-label={`${tc('edit')} ${locField(locale, branch, 'name')}`}
+                                  className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                                >
+                                  <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
+                                </button>
                               </span>
                             </div>
                           );

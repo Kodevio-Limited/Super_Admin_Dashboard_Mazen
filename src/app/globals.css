@@ -92,15 +92,29 @@ html[lang="ar"] .font-poppins {
   background: #989898;
 }
 
+:root {
+  --sa-zoom: 0.75;
+}
+
+/* Viewport heights inside a zoomed shell divide by the zoom factor —
+   otherwise the scaled content only covers 75% of the real viewport
+   (sidebar/sign-out stopping short of the bottom in tablet mode). */
+.sa-fit {
+  min-height: calc(100vh / var(--sa-zoom));
+}
+.sa-fit-dvh {
+  height: calc(100dvh / var(--sa-zoom));
+}
 /* ─── Dashboard density scale (Bug-61) ────────────────────────────────────── */
 /* The dashboard was designed at large display sizes (40px KPI numbers, 33px
    section headings, 22px nav icons) and reads oversized on smaller screens.
    `zoom` scales text, icons, AND layout uniformly — the single knob to tune
    overall density. Applied on the dashboard shell, so sidebar, topbar, pages,
    modals, and drawers all shrink together. Auth pages are intentionally left
-   at full size. Raise toward 1 (or lower) to adjust. */
+   at full size. Raise toward 1 (or lower) to adjust; the *.sa-fit helpers
+   compensate viewport-unit heights. */
 .sa-density {
-  zoom: 0.85;
+  zoom: var(--sa-zoom);
 }
 
 /* ─── RTL icon flips ──────────────────────────────────────────────────────── */

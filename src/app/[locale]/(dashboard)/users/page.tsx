@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, Search, ListFilter, Trash2 } from 'lucide-react';
+import { Plus, Search, ListFilter, ChevronUp, ChevronDown } from 'lucide-react';
 import Topbar from '@/components/Topbar';
 import UserDetailsModal, { rolePill, roleShort } from '@/components/modals/UserDetailsModal';
 import UserFilterModal, { UserFilters } from '@/components/modals/UserFilterModal';
 import DeleteUserDialog from '@/components/modals/DeleteUserDialog';
 import { getUsers, addUser, updateUser, deleteUser } from '@/data/userStore';
 import { getRestaurants } from '@/data/restaurantStore';
-import { AdminUser } from '@/types/admin';
-import { locField, pickAr } from '@/lib/localize';
+import { AdminUser, Restaurant } from '@/types/admin';
+import { locField } from '@/lib/localize';
 import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-modal';
 
 // Source of truth: Figma frame "Users" (1527:3912).
@@ -50,11 +50,22 @@ const EMPTY_USER: AdminUser = {
 
 type DetailsState = { user: AdminUser; isNew: boolean; mode: 'view' | 'edit' } | null;
 
+// Bug-2: mirror the Restaurants layout — one expandable group row per
+// restaurant, with its staff as sub-rows underneath (owner first).
+// Bug-15: no row-level delete buttons — deletion lives in the edit menu
+// (User details → Delete user), so only the edit button remains per row.
+const USER_COLS =
+  'grid grid-cols-[minmax(220px,1.6fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_minmax(120px,0.9fr)_minmax(100px,0.7fr)_120px] gap-4 px-6 items-center';
+
+interface UserGroup {
+  key: string;
+  restaurant?: Restaurant;
+  users: AdminUser[];
+}
+
 export default function UsersPage() {
   const t = useTranslations('sa.users');
-  const tc = useTranslations('common.actions');
   const ts = useTranslations('common.status');
-  const tr = useTranslations('common.roles');
   const locale = useLocale();
   const [users, setUsers] = useState<AdminUser[]>(getUsers());
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +76,7 @@ export default function UsersPage() {
   const [deleteOpen, setDeleteOpen] = useQueryModal('delete-user');
   const [details, setDetails] = useState<DetailsState>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const openDetails = (user: AdminUser, isNew: boolean, mode: 'view' | 'edit') => {
     setDetails({ user, isNew, mode });
@@ -112,6 +124,31 @@ export default function UsersPage() {
     const matchesStatus = !filters.activeOnly || u.status === 'Active';
     return matchesSearch && roleMatches(u.role, filters.roles) && matchesRestaurant && matchesStatus;
   });
+
+  // Group rows: restaurant-backed groups (store order) first, then
+  // restaurant-less users as their own groups. When searching every match
+  // must stay visible, so all groups render expanded.
+  const groups = useMemo<UserGroup[]>(() => {
+    const byRestaurant = new Map<string, UserGroup>();
+    const free: UserGroup[] = [];
+    for (const r of restaurants) {
+      const members = filtered.filter((u) => u.restaurantName === r.name);
+      if (members.length === 0) continue;
+      // Owner leads the group; remaining staff keep data order.
+      members.sort((a, b) =>
+        (a.role === 'Restaurant Owner' ? 0 : 1) - (b.role === 'Restaurant Owner' ? 0 : 1),
+      );
+      byRestaurant.set(r.name, { key: `rest-${r.id}`, restaurant: r, users: members });
+    }
+    for (const u of filtered) {
+      if (u.restaurantName && byRestaurant.has(u.restaurantName)) continue;
+      free.push({ key: `user-${u.id}`, users: [u] });
+    }
+    return [...byRestaurant.values(), ...free];
+  }, [filtered, restaurants]);
+
+  // When searching or filtering by restaurant, flatten so every match is visible.
+  const searchActive = filters.restaurant !== '' || searchQuery.trim() !== '';
 
   const saveUser = (user: AdminUser) => {
     if (details?.isNew) addUser(user);
@@ -164,7 +201,7 @@ export default function UsersPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[960px]">
-              <div className="grid grid-cols-[minmax(220px,1.6fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_minmax(120px,0.9fr)_minmax(100px,0.7fr)_120px] gap-4 px-6 py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
+              <div className={`${USER_COLS} py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide`}>
                 <span>{t('columns.userDetails')}</span>
                 <span>{t('columns.role')}</span>
                 <span>{t('columns.restaurant')}</span>
@@ -172,62 +209,108 @@ export default function UsersPage() {
                 <span>{t('columns.status')}</span>
                 <span className="text-center">{t('columns.actions')}</span>
               </div>
-              {filtered.length === 0 ? (
+              {groups.length === 0 ? (
                 <p className="px-6 py-10 text-center text-sm text-[#989898]">{t('noUsersMatch')}</p>
               ) : (
-                filtered.map((u) => (
-                  <div
-                    key={u.id}
-                    className="grid grid-cols-[minmax(220px,1.6fr)_minmax(110px,0.8fr)_minmax(140px,1fr)_minmax(120px,0.9fr)_minmax(100px,0.7fr)_120px] gap-4 px-6 py-4 items-center border-t border-gray-100 first:border-t-0"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
-                        <Image src={u.avatar || '/images/avatar.png'} alt={u.name} fill className="object-cover" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-[#2D2F33] text-[15px] truncate"><bdi dir={locale === 'ar' && u.name_ar && u.name_ar !== u.name ? undefined : 'ltr'}>{locField(locale, u, 'name')}</bdi></span>
-                        <span className="block text-xs text-[#989898] truncate"><bdi dir="ltr">{u.email}</bdi></span>
-                      </span>
+                groups.map((group) => {
+                  const owner = group.restaurant && group.users.find((u) => u.role === 'Restaurant Owner');
+                  const isOpen = searchActive || (expanded[group.key] ?? false);
+                  return (
+                    <div key={group.key} className="border-t border-gray-100 first:border-t-0">
+                      {/* Group row: restaurant (with owner contact) or a lone user */}
+                      <div className={`${USER_COLS} py-5`}>
+                        <div className="flex items-start gap-2">
+                          {group.restaurant ? (
+                            <>
+                              <button
+                                onClick={() =>
+                                  setExpanded((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
+                                }
+                                aria-label={isOpen ? t('collapseUsers') : t('expandUsers')}
+                                className="mt-1 text-[#2D2F33] hover:text-[#026F4F] transition-colors"
+                              >
+                                {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                              </button>
+                              <div>
+                                <p className="font-semibold text-[#2D2F33] text-[17px]">
+                                  {locField(locale, group.restaurant, 'name')}
+                                </p>
+                                <p className="text-sm text-[#989898] mt-0.5">
+                                  {t('usersCountLabel', { count: group.users.length })}
+                                </p>
+                              </div>
+                            </>
+                          ) : (
+                            <UserLeaf user={group.users[0]} />
+                          )}
+                        </div>
+                        {group.restaurant && <span className="text-sm text-[#2D2F33]">{owner ? roleShort(owner.role, locale) : '—'}</span>}
+                        {group.restaurant && <span className="text-sm text-[#2D2F33]">{locField(locale, group.restaurant, 'name')}</span>}
+                        {group.restaurant && <span className="text-sm text-[#989898]">—</span>}
+                        {group.restaurant && (
+                          <span>
+                            <span
+                              className={`text-sm font-medium px-4 py-1.5 rounded-full ${
+                                group.restaurant.status === 'Active'
+                                  ? 'bg-[#D9F5D9] text-[#158F15]'
+                                  : group.restaurant.status === 'Suspended'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              {group.restaurant.status === 'Active'
+                                ? ts('active')
+                                : group.restaurant.status === 'Suspended'
+                                  ? ts('suspended')
+                                  : ts('inactive')}
+                            </span>
+                          </span>
+                        )}
+                        {group.restaurant && <span className="text-center">—</span>}
+                      </div>
+
+                      {/* Staff sub-rows */}
+                      {isOpen && group.users.length > 1 && (
+                        <div className="mx-4 sm:mx-6 mb-4 bg-[#F8F9FA] rounded-2xl px-6 py-2 divide-y divide-gray-200/70">
+                          {group.users.map((u) => (
+                            <div key={u.id} className={`${USER_COLS} py-4`}>
+                              <UserLeaf user={u} />
+                              <span>
+                                <span className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full ${rolePill(u.role)}`}>
+                                  {roleShort(u.role, locale)}
+                                </span>
+                              </span>
+                              <span className="text-sm text-[#2D2F33]">{u.restaurantName ? locField(locale, u, 'restaurantName') : '—'}</span>
+                              <span className="text-sm text-[#989898]">{u.branchName ? locField(locale, u, 'branchName') : '—'}</span>
+                              <span>
+                                <span
+                                  className={`text-sm font-medium px-4 py-1.5 rounded-full ${
+                                    u.status === 'Active'
+                                      ? 'bg-[#D9F5D9] text-[#158F15]'
+                                      : u.status === 'Suspended'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-gray-100 text-[#686868]'
+                                  }`}
+                                >
+                                  {u.status === 'Active' ? ts('active') : u.status === 'Suspended' ? ts('suspended') : ts('inactive')}
+                                </span>
+                              </span>
+                              <span className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => openDetails(u, false, 'edit')}
+                                  aria-label={t('editUser', { name: u.name })}
+                                  className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                                >
+                                  <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
+                                </button>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <span>
-                      <span className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full ${rolePill(u.role)}`}>
-                        {roleShort(u.role, locale)}
-                      </span>
-                    </span>
-                    <span className="text-sm text-[#2D2F33]">{locField(locale, u, 'restaurantName') || '—'}</span>
-                    <span className="text-sm text-[#989898]">{locField(locale, u, 'branchName') || '—'}</span>
-                    <span>
-                      <span
-                        className={`text-sm font-medium px-4 py-1.5 rounded-full ${
-                          u.status === 'Active'
-                            ? 'bg-[#D9F5D9] text-[#158F15]'
-                            : u.status === 'Suspended'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-gray-100 text-[#686868]'
-                        }`}
-                      >
-                        {u.status === 'Active' ? ts('active') : u.status === 'Suspended' ? ts('suspended') : ts('inactive')}
-                      </span>
-                    </span>
-                    <span className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => openDetails(u, false, 'edit')}
-                        aria-label={t('editUser', { name: u.name })}
-                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                      >
-                        <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
-                      </button>
-                      {/* Bug-19: row delete with confirm (action can't be undone). */}
-                      <button
-                        onClick={() => openDelete(u)}
-                        aria-label={`${tc('delete')} ${u.name}`}
-                        className="w-11 h-11 rounded-lg bg-[#FDECEC] hover:bg-[#E85E5E] flex items-center justify-center text-[#E85E5E] hover:text-white transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -274,6 +357,21 @@ export default function UsersPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// Inline user cell (avatar + name + email) reused in group and sub rows.
+function UserLeaf({ user }: { user: AdminUser }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <span className="relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+        <Image src={user.avatar || '/images/avatar.png'} alt={user.name} fill className="object-cover" />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-semibold text-[#2D2F33] text-[15px] truncate"><bdi>{user.name}</bdi></span>
+        <span className="block text-xs text-[#989898] truncate"><bdi dir="ltr">{user.email}</bdi></span>
+      </span>
     </div>
   );
 }

@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus, Trash2, Share2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import PlanTierPicker from '../PlanTierPicker';
-import { toArDate, planNameAr } from '../../lib/localize';
+import { toArDate, planNameAr, pickAr } from '../../lib/localize';
 import { readQueryParam, writeQueryParam } from '../../lib/use-query-modal';
 import { useBodyScrollLock, useEscapeToClose } from '../../lib/useModalShell';
 import {
   FIGMA_TIERS,
   FigmaTier,
+  FigmaTierDef,
   FigmaBillingCycle,
   cycleTotal,
 } from '../../data/figmaPlans';
@@ -34,6 +35,19 @@ interface DraftBranch {
 }
 
 const EMPTY_BRANCH: DraftBranch = { name: '', cityCountry: '', address: '' };
+
+// Bug-12 (2): selectable dial codes — Egypt +20 is the default per client.
+const COUNTRY_CODES = [
+  { code: '+20', label: 'EG +20' },
+  { code: '+966', label: 'SA +966' },
+  { code: '+971', label: 'AE +971' },
+  { code: '+965', label: 'KW +965' },
+  { code: '+962', label: 'JO +962' },
+  { code: '+973', label: 'BH +973' },
+  { code: '+974', label: 'QA +974' },
+  { code: '+1', label: 'US +1' },
+  { code: '+44', label: 'UK +44' },
+] as const;
 
 function StepIndicator({ step }: { step: Step }) {
   const order: Step[] = ['info', 'branches', 'plan', 'credentials', 'done'];
@@ -86,17 +100,24 @@ export default function CreateRestaurantModal({
   // S1 — restaurant & owner
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Japanese & Ramen');
+  // Bug-12 (1): "Custom" reveals a free-text category input.
+  const [customCategory, setCustomCategory] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
+  // Bug-12 (2): dial code + number, default Egypt +20.
+  const [dialCode, setDialCode] = useState<string>(COUNTRY_CODES[0].code);
+  const [nationalNumber, setNationalNumber] = useState('');
+  const [taxId, setTaxId] = useState('');
   const [address, setAddress] = useState('');
 
   // S2 — branches (Figma 1259:651; "+ Add Branch" appends another block)
   const [draftBranches, setDraftBranches] = useState<DraftBranch[]>([{ ...EMPTY_BRANCH }]);
 
-  // S3 — plan (Figma 1859:336)
+  // S3 — plan (Figma 1859:336); Bug-14: one extra plan choice per branch.
   const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
   const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
+  // Per-branch tier, defaulting to the restaurant plan tier at entry to S3.
+  const [branchTiers, setBranchTiers] = useState<FigmaTier[]>([]);
 
   // S4 — credentials
   const [credentials, setCredentials] = useState({ username: '', temporaryPassword: '' });
@@ -104,11 +125,16 @@ export default function CreateRestaurantModal({
   const locale = useLocale();
   const isAr = locale === 'ar';
   const CATEGORY_EN = ['Japanese & Ramen', 'Italian & Pizzeria', 'American Burger & Grill', 'Mexican & Tacos', 'French Bistro & Cafe', 'Seafood & Fine Dining'];
+  // Bug-12 (1): the last option is a free-text escape hatch.
+  const CUSTOM_CATEGORY = 'Custom';
+  const effectiveCategory = category === CUSTOM_CATEGORY ? customCategory.trim() : category;
   const catsAr = t.raw('categories') as unknown as string[];
   const catLabel = (en: string) => {
     const i = CATEGORY_EN.indexOf(en);
     return isAr && catsAr[i] ? catsAr[i] : en;
   };
+  // Bug-14: localized tier names for the per-branch plan selects.
+  const pickTierLabel = (p: FigmaTierDef) => pickAr(locale, p.tier, p.tier_ar);
 
   useBodyScrollLock(isOpen);
   useEscapeToClose(isOpen, onClose);
@@ -150,6 +176,8 @@ export default function CreateRestaurantModal({
     // Bug-17: exactly one Main Branch — block duplicate/“main” names on added branches.
     const names = draftBranches.slice(1).map((b) => b.name.trim().toLowerCase()).filter(Boolean);
     if (names.length !== new Set(names).size || names.includes('main branch')) return;
+    // Bug-14: reset each branch's plan choice to the restaurant tier on entry.
+    setBranchTiers(draftBranches.map(() => selectedTier));
     setStep('plan');
   };
 
@@ -159,10 +187,17 @@ export default function CreateRestaurantModal({
 
     const chosenTier = FIGMA_TIERS.find((p) => p.tier === selectedTier)!;
     const id = `rest-${Date.now()}`;
-    const branches = draftBranches.map((b, i) => ({
+    const ownerPhone = `${dialCode} ${nationalNumber.trim()}`.trim();
+    const branchPlans: FigmaTier[] = branchTiers.length === draftBranches.length
+      ? branchTiers
+      : draftBranches.map(() => selectedTier);
+    const branches = draftBranches.map((b, i) => {
+      const branchTier = FIGMA_TIERS.find((p) => p.tier === branchPlans[i]) ?? chosenTier;
+      return {
       id: `br-${Date.now()}-${i}`,
-      // Bug-17: first block is always the single Main Branch.
-      name: i === 0 ? `${name} Main Branch` : (b.name || `${name} Branch ${i + 1}`),
+      // Bug-13: the Main Branch name is typed by the user (fallback default).
+      // Bug-17: first block is still the single Main Branch.
+      name: i === 0 ? (b.name.trim() || `${name} Main Branch`) : (b.name || `${name} Branch ${i + 1}`),
       name_ar: b.name || undefined,
       address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
       phone: ownerPhone,
@@ -172,22 +207,24 @@ export default function CreateRestaurantModal({
       ordersToday: 0,
       revenueToday: 0,
       status: 'Active' as const,
-      planName: `${chosenTier.tier} Plan`,
-      planName_ar: planNameAr(`${chosenTier.tier} Plan`),
+      planName: `${branchTier.tier} Plan`,
+      planName_ar: planNameAr(`${branchTier.tier} Plan`),
       planExpiry: 'Sep 30, 2027',
       planExpiry_ar: toArDate('Sep 30, 2027'),
-      monthlyFee: 0,
-    }));
+      monthlyFee: branchTier.monthlyPrice,
+      };
+    });
 
     setCreatedId(id);
     onSuccess({
       id,
       name,
       logo: '/images/food-41e5d7.png',
-      category,
+      category: effectiveCategory || category,
       ownerName,
       ownerEmail,
       ownerPhone,
+      taxId: taxId.trim() || undefined,
       address,
       status: 'Active' as const,
       joinedDate: 'Just now',
@@ -286,7 +323,19 @@ export default function CreateRestaurantModal({
                     {CATEGORY_EN.map((c) => (
                       <option key={c} value={c}>{catLabel(c)}</option>
                     ))}
+                    {/* Bug-12 (1): type your own category. */}
+                    <option value={CUSTOM_CATEGORY}>{isAr ? 'مخصص' : CUSTOM_CATEGORY}</option>
                   </select>
+                  {category === CUSTOM_CATEGORY && (
+                    <input
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder={t('customCategoryPlaceholder')}
+                      className={pillInput}
+                      dir="auto"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -301,13 +350,41 @@ export default function CreateRestaurantModal({
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-sm text-[#2D2F33]">{t('phoneNumber')}</label>
-                  <input dir="ltr" type="tel" required value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder={t('phonePlaceholder')} className={pillInput} />
+                  {/* Bug-12 (2): pick the dial code — default Egypt +20. */}
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={dialCode}
+                      onChange={(e) => setDialCode(e.target.value)}
+                      aria-label={t('countryCode')}
+                      className="h-14 px-3 bg-[#F2F2F2] rounded-full text-[15px] text-[#2D2F33] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 transition-all shrink-0"
+                    >
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.code} value={c.code}><bdi dir="ltr">{c.label}</bdi></option>
+                      ))}
+                    </select>
+                    <input
+                      dir="ltr"
+                      type="tel"
+                      required
+                      value={nationalNumber}
+                      onChange={(e) => setNationalNumber(e.target.value)}
+                      placeholder={t('nationalNumberPlaceholder')}
+                      className={pillInput + ' flex-1 min-w-0'}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-sm text-[#2D2F33]">{t('hqAddress')}</label>
-                <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('hqPlaceholder')} className={pillInput} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Bug-12a: Tax ID on the first stage. */}
+                <div className="space-y-1.5">
+                  <label className="block text-sm text-[#2D2F33]">{t('taxId')}</label>
+                  <input dir="ltr" type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder={t('taxIdPlaceholder')} className={pillInput} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-sm text-[#2D2F33]">{t('hqAddress')}</label>
+                  <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('hqPlaceholder')} className={pillInput} />
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -352,14 +429,25 @@ export default function CreateRestaurantModal({
               {draftBranches.map((b, i) => (
                 <div key={i} className="space-y-5">
                   {i === 0 ? (
-                    // Bug-17: exactly one Main Branch — fixed, non-editable, non-deletable.
-                    <div className="space-y-1.5">
-                      <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
-                      <div className="flex h-14 items-center justify-between rounded-full bg-[#026F4F]/10 px-6 text-[15px] font-semibold text-[#026F4F]">
-                        <span>{t('mainBranch')}</span>
-                        <span className="rounded-full bg-[#026F4F] px-3 py-1 text-xs font-semibold text-white">{t('primary')}</span>
+                    <>
+                      {/* Bug-13: the Main Branch name is now typeable (still
+                          exactly one main branch — Bug-17 logic keeps it fixed
+                          as the primary block). */}
+                      <div className="space-y-1.5">
+                        <label className="block text-sm text-[#2D2F33]">{t('branchName')}</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="text"
+                            dir="auto"
+                            value={b.name}
+                            onChange={(e) => updateDraft(i, { name: e.target.value })}
+                            placeholder={t('mainBranch')}
+                            className={pillInput}
+                          />
+                          <span className="rounded-full bg-[#026F4F] px-3 py-1.5 text-xs font-semibold text-white flex-shrink-0">{t('primary')}</span>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   ) : (
                     <>
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -423,6 +511,47 @@ export default function CreateRestaurantModal({
                 onSelectTier={setSelectedTier}
                 onSelectCycle={setBillingCycle}
               />
+              {/* Bug-14: a plan pick for each branch too — the Restaurant
+                  Plan above covers the restaurant itself, each branch below
+                  gets its own tier (price follows the chosen billing cycle). */}
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <div>
+                  <h4 className="text-xl font-semibold text-[#2D2F33]">{t('branchPlans')}</h4>
+                  <p className="text-[#989898] mt-1 text-sm">{t('branchPlansDesc')}</p>
+                </div>
+                <div className="space-y-2.5">
+                  {draftBranches.map((b, i) => {
+                    const current = branchTiers[i] ?? selectedTier;
+                    return (
+                      <div key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-full bg-[#F2F2F2] px-5 py-2">
+                        <span className="text-[15px] font-semibold text-[#2D2F33] max-w-[55%] truncate">
+                          {i === 0
+                            ? (b.name.trim() || t('mainBranch'))
+                            : (b.name.trim() || t('branchN', { n: i + 1 }))}
+                        </span>
+                        <select
+                          value={current}
+                          onChange={(e) =>
+                            setBranchTiers((prev) => {
+                              const next = prev.length === draftBranches.length
+                                ? [...prev]
+                                : draftBranches.map(() => selectedTier);
+                              next[i] = e.target.value as FigmaTier;
+                              return next;
+                            })
+                          }
+                          aria-label={t('branchPlanLabel', { n: i + 1 })}
+                          className="h-11 px-4 bg-white border border-gray-200 rounded-full text-sm font-medium text-[#2D2F33] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30"
+                        >
+                          {FIGMA_TIERS.map((p) => (
+                            <option key={p.tier} value={p.tier}>{pickTierLabel(p)}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('branches')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
               <ArrowLeft size={16} className="rtl:scale-x-[-1]" />

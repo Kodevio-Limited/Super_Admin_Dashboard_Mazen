@@ -124,7 +124,7 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
 
       {/* Collapsible sidebar (tablet + desktop) — full labels or icon rail */}
       <aside
-        className={`hidden md:flex bg-white h-screen flex-col justify-between sticky top-0 z-40 flex-shrink-0 border-e border-gray-100/80 transition-all duration-300 ${
+        className={`hidden md:flex bg-white sa-fit-dvh flex-col justify-between sticky top-0 z-40 flex-shrink-0 border-e border-gray-100/80 transition-all duration-300 ${
           collapsed ? 'w-[76px] items-center py-6' : 'w-[280px] p-6'
         }`}
       >

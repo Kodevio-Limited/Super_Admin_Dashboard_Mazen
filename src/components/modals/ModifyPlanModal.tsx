@@ -53,7 +53,7 @@ export default function ModifyPlanModal({
         <PlanTierPicker
           selectedTier={selectedTier}
           billingCycle={billingCycle}
-          onSelectTier={setSelectedTier}
+          onSelectTier={(t) => { if (t) setSelectedTier(t); }}
           onSelectCycle={setBillingCycle}
           singleColumn={stacked}
         />

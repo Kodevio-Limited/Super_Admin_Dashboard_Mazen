@@ -240,7 +240,7 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
                 <p key={s.key} className="mt-1 flex items-center gap-1.5 text-sm">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
                   <span className="text-[#686868]">{s.key}</span>
-                  <span className="font-semibold text-[#2D2F33]">${(selected as any)[s.key]}K</span>
+                  <span className="font-semibold text-[#2D2F33]">EGP {(selected as any)[s.key]}K</span>
                 </p>
               ))}
             </div>
@@ -276,9 +276,9 @@ const RECENT_UPDATES = [
 ];
 
 const REVENUE_SNAPSHOT = [
-  { key: 'totalRevenueSnap', value: '$15.99' },
-  { key: 'mrrSnap',          value: '$15.99' },
-  { key: 'failedPayments',   value: '$15.99' },
+  { key: 'totalRevenueSnap', value: 'EGP 15.99' },
+  { key: 'mrrSnap',          value: 'EGP 15.99' },
+  { key: 'failedPayments',   value: 'EGP 15.99' },
 ];
 
 function MonthPill({ label }: { label: string }) {
@@ -303,7 +303,7 @@ export default function SuperAdminDashboardPage() {
     { key: 'activeSubscriptions', value: '48',    delta: t('deltaLastMonth', { value: '12.5%' }), icon: Receipt },
     {
       key: 'totalRevenue',
-      valuePrefix: '$', value: '2,250',
+      valuePrefix: 'EGP ', value: '2,250',
       valuePrefixClass: 'text-[#026F4F]', valueClass: 'text-[#026F4F]',
       delta: t('deltaLastMonth', { value: '12.5%' }), icon: UtensilsCrossed,
     },

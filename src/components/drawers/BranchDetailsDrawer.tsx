@@ -77,7 +77,7 @@ export default function BranchDetailsDrawer({
                 </div>
                 <div className="bg-[#F8F9FA] p-3 rounded-xl">
                   <p className="text-[11px] text-[#989898] font-bold uppercase">{isAr ? 'إيرادات اليوم' : 'Revenue Today'}</p>
-                  <p className="text-lg font-bold text-[#2D2F33] mt-0.5"><bdi dir="ltr">${branch.revenueToday}</bdi></p>
+                  <p className="text-lg font-bold text-[#2D2F33] mt-0.5"><bdi dir="ltr">EGP {branch.revenueToday}</bdi></p>
                 </div>
               </div>
             </div>

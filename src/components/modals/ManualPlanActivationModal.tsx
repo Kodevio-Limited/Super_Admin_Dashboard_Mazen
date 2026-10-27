@@ -66,7 +66,7 @@ export default function ManualPlanActivationModal({
         <PlanTierPicker
           selectedTier={selectedTier}
           billingCycle="Monthly"
-          onSelectTier={setSelectedTier}
+          onSelectTier={(t) => { if (t) setSelectedTier(t); }}
           onSelectCycle={() => {}}
           showPrices={false}
           singleColumn={stacked}

@@ -95,7 +95,7 @@ export default function LogEntryModal({
               min={0}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="$ 0.00"
+              placeholder="EGP 0.00"
               className={pillInput}
             />
           </div>

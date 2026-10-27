@@ -77,7 +77,7 @@ export function cycleTotal(monthlyPrice: number, cycle: FigmaBillingCycle): numb
 }
 
 export function formatMonthly(value: number): string {
-  return `$${Number.isInteger(value) ? value : value.toFixed(2)}`;
+  return `EGP ${Number.isInteger(value) ? value : value.toFixed(2)}`;
 }
 
 // Custom plans created through the Subscriptions plan-form frames

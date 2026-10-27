@@ -260,7 +260,7 @@ function CustomPlanCard({
         </p>
       )}
       <div className="text-[32px] leading-tight font-bold text-[#2D2F33] mt-1">
-        <span dir="ltr">${customPlanPrice(plan, billingCycle).toLocaleString()}</span>
+        <span dir="ltr">EGP {customPlanPrice(plan, billingCycle).toLocaleString()}</span>
         <span className="text-sm text-[#989898] font-normal"> {ar ? '/شهر' : '/mo'}</span>
       </div>
       <span className="inline-flex w-fit mt-2 text-xs font-medium text-[#026F4F] bg-[#026F4F]/10 px-2.5 py-1 rounded-full">

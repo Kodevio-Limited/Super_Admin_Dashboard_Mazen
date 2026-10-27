@@ -36,7 +36,7 @@ import { TransactionLedger } from '@/types/admin';
 
 // --- KPI cards (values translated via keys; icons per Figma) ---
 const KPI_CARDS = [
-  { key: 'totalRevenue', value: '$1,250', valueClass: 'text-[#026F4F]', subKey: 'deltaYesterday', subValues: { value: '12.5%' }, subClass: 'text-[#158F15]', icon: Store, delta: true },
+  { key: 'totalRevenue', value: 'EGP 1,250', valueClass: 'text-[#026F4F]', subKey: 'deltaYesterday', subValues: { value: '12.5%' }, subClass: 'text-[#158F15]', icon: Store, delta: true },
   { key: 'activeRestaurants', value: '155', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: Receipt },
   { key: 'totalOrders', value: '432', subKey: 'deltaThisMonth', subValues: { value: '12' }, subClass: 'text-[#989898]', icon: UtensilsCrossed },
   { key: 'paidAccounts', value: '142', subKey: 'percentOfTotal', subValues: { value: '91%' }, subClass: 'text-[#989898]', icon: Armchair },
@@ -103,12 +103,12 @@ function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
 // showing the most overdue first). Bug-3: contact now carries a phone
 // number under the email (all defaults to Egypt +20).
 const DELAYED_ROWS = [
-  { restaurant: 'Casa Mia Italian', plan: 'Custom Plan', amount: '$299.00', overdue: '21 days', contact: 'marcus@casamiapizza.com', phone: '+20 100 441 3829' },
-  { restaurant: 'Bistro Belle', plan: 'Basic Plan', amount: '$19.00', overdue: '18 days', contact: 'chloe@bistrobelle.com', phone: '+20 122 750 9931' },
-  { restaurant: "L'Étoile Grill", plan: 'Pro Plan', amount: '$63.00', overdue: '15 days', contact: 'tariq@grilletoile.com', phone: '+20 155 210 7462' },
-  { restaurant: 'The Shamrock Pub', plan: 'Pro Plan', amount: '$63.00', overdue: '12 days', contact: 'liam@dublinpub.com', phone: '+20 128 904 5510' },
-  { restaurant: 'Tokyo Ramen House', plan: 'Enterprise Plan', amount: '$191.00', overdue: '9 days', contact: 'alexander@tokyodining.com', phone: '+20 111 678 2245' },
-  { restaurant: 'Burger Haven', plan: 'Basic Plan', amount: '$19.00', overdue: '6 days', contact: 'omar@burgerhaven.com', phone: '+20 106 338 8870' },
+  { restaurant: 'Casa Mia Italian', plan: 'Custom Plan', amount: 'EGP 299.00', overdue: '21 days', contact: 'marcus@casamiapizza.com', phone: '+20 100 441 3829' },
+  { restaurant: 'Bistro Belle', plan: 'Basic Plan', amount: 'EGP 19.00', overdue: '18 days', contact: 'chloe@bistrobelle.com', phone: '+20 122 750 9931' },
+  { restaurant: "L'Étoile Grill", plan: 'Pro Plan', amount: 'EGP 63.00', overdue: '15 days', contact: 'tariq@grilletoile.com', phone: '+20 155 210 7462' },
+  { restaurant: 'The Shamrock Pub', plan: 'Pro Plan', amount: 'EGP 63.00', overdue: '12 days', contact: 'liam@dublinpub.com', phone: '+20 128 904 5510' },
+  { restaurant: 'Tokyo Ramen House', plan: 'Enterprise Plan', amount: 'EGP 191.00', overdue: '9 days', contact: 'alexander@tokyodining.com', phone: '+20 111 678 2245' },
+  { restaurant: 'Burger Haven', plan: 'Basic Plan', amount: 'EGP 19.00', overdue: '6 days', contact: 'omar@burgerhaven.com', phone: '+20 106 338 8870' },
 ];
 
 // Bug-9: "View All" report — every restaurant, every branch, with the same
@@ -117,24 +117,91 @@ const DELAYED_ROWS = [
 function DetailedReportAllModal({ onClose }: { onClose: () => void }) {
   const t = useTranslations('sa.revenue');
   const locale = useLocale();
+  const [timeframe, setTimeframe] = useState<'month' | 'week' | 'custom'>('month');
+  const [fromDate, setFromDate] = useState('2026-08-01');
+  const [toDate, setToDate] = useState('2026-08-31');
+
+  const multiplier = timeframe === 'week' ? 0.25 : timeframe === 'custom' ? 0.5 : 1;
+
   const restaurants = [...getRestaurants()].sort(
     (a, b) => b.totalRevenue - a.totalRevenue,
   );
   return (
     <LeftPanel onClose={onClose} labelledBy={t('detailedReportAll')} widthClass="w-[min(920px,94vw)]">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
         <div>
           <h3 className="font-bold text-[#2D2F33] text-2xl">{t('detailedReportAll')}</h3>
-          <p className="text-[#989898] mt-1">{t('perMonth')} — {t('timeframeNote')}</p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors shrink-0"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Timeframe selector button */}
+          <div className="flex items-center bg-[#F2F2F2] p-1 rounded-full text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => setTimeframe('month')}
+              className={`px-3.5 py-1.5 rounded-full transition-all ${
+                timeframe === 'month'
+                  ? 'bg-white shadow font-semibold text-[#2D2F33]'
+                  : 'text-[#686868] hover:text-[#2D2F33]'
+              }`}
+            >
+              {t('month')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeframe('week')}
+              className={`px-3.5 py-1.5 rounded-full transition-all ${
+                timeframe === 'week'
+                  ? 'bg-white shadow font-semibold text-[#2D2F33]'
+                  : 'text-[#686868] hover:text-[#2D2F33]'
+              }`}
+            >
+              {t('week')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeframe('custom')}
+              className={`px-3.5 py-1.5 rounded-full transition-all ${
+                timeframe === 'custom'
+                  ? 'bg-white shadow font-semibold text-[#2D2F33]'
+                  : 'text-[#686868] hover:text-[#2D2F33]'
+              }`}
+            >
+              {t('customDate')}
+            </button>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D2F33] transition-colors shrink-0"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
+
+      {timeframe === 'custom' && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-[#F8F9FA] rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[#686868] font-medium">{t('fromDate')}:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="h-9 px-3 bg-white border border-gray-200 rounded-lg text-xs text-[#2D2F33] focus:outline-none focus:ring-1 focus:ring-[#026F4F]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#686868] font-medium">{t('toDate')}:</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="h-9 px-3 bg-white border border-gray-200 rounded-lg text-xs text-[#2D2F33] focus:outline-none focus:ring-1 focus:ring-[#026F4F]"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 overflow-x-auto">
         <table className="w-full text-start border-collapse min-w-[700px]">
           <thead>
@@ -146,30 +213,38 @@ function DetailedReportAllModal({ onClose }: { onClose: () => void }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
-            {restaurants.map((r) => (
-              <React.Fragment key={r.id}>
-                <tr>
-                  <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33] text-[15px]">{locField(locale, r, 'name')}</td>
-                  <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#026F4F]" dir="ltr"><bdi>${r.totalRevenue.toLocaleString()}</bdi></td>
-                  <td className="whitespace-nowrap py-4 px-4 text-[#2D2F33]">{r.totalOrders.toLocaleString()}</td>
-                  <td className="whitespace-nowrap py-4 px-4">
-                    <span className={`inline-block text-xs font-medium px-3.5 py-1.5 rounded-full ${planPill(locField(locale, r, 'planName') || r.planName, locale).classes}`}>
-                      {planPill(locField(locale, r, 'planName') || r.planName, locale).label}
-                    </span>
-                  </td>
-                </tr>
-                {r.branches.map((b) => (
-                  <tr key={b.id} className="bg-[#F8F9FA]/60">
-                    <td className="py-3 px-4 ps-10 text-[#686868]">{locField(locale, b, 'name')}</td>
-                    <td className="py-3 px-4 text-[#686868]" dir="ltr"><bdi>${(b.revenueToday || 0).toLocaleString()}</bdi></td>
-                    <td className="py-3 px-4 text-[#686868]">{b.ordersToday.toLocaleString()}</td>
-                    <td className="py-3 px-4 text-[#686868]">
-                      {planPill(locField(locale, b, 'planName') || r.planName, locale).label}
+            {restaurants.map((r) => {
+              const rev = Math.round(r.totalRevenue * multiplier);
+              const ord = Math.round(r.totalOrders * multiplier);
+              return (
+                <React.Fragment key={r.id}>
+                  <tr>
+                    <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33] text-[15px]">{locField(locale, r, 'name')}</td>
+                    <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#026F4F]" dir="ltr"><bdi>EGP {rev.toLocaleString()}</bdi></td>
+                    <td className="whitespace-nowrap py-4 px-4 text-[#2D2F33]">{ord.toLocaleString()}</td>
+                    <td className="whitespace-nowrap py-4 px-4">
+                      <span className={`inline-block text-xs font-medium px-3.5 py-1.5 rounded-full ${planPill(locField(locale, r, 'planName') || r.planName, locale).classes}`}>
+                        {planPill(locField(locale, r, 'planName') || r.planName, locale).label}
+                      </span>
                     </td>
                   </tr>
-                ))}
-              </React.Fragment>
-            ))}
+                  {r.branches.map((b) => {
+                    const bRev = Math.round((b.revenueToday || 0) * multiplier);
+                    const bOrd = Math.round(b.ordersToday * multiplier);
+                    return (
+                      <tr key={b.id} className="bg-[#F8F9FA]/60">
+                        <td className="py-3 px-4 ps-10 text-[#686868]">{locField(locale, b, 'name')}</td>
+                        <td className="py-3 px-4 text-[#686868]" dir="ltr"><bdi>EGP {bRev.toLocaleString()}</bdi></td>
+                        <td className="py-3 px-4 text-[#686868]">{bOrd.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-[#686868]">
+                          {planPill(locField(locale, b, 'planName') || r.planName, locale).label}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -204,26 +279,26 @@ const REVENUE_BY_PLAN = [
 
 // --- Detailed Report (verbatim Figma rows + parallel Arabic fields) ---
 const DETAILED_REPORT = [
-  { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'El Gaucho Steakhouse', restaurant_ar: 'مطعم إل غاوتشو', revenue: '$1,240.00', orders: 142, tier: 'ENTERPRISE', tier_ar: 'المؤسسية' },
-  { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'The Rustic Spoon', restaurant_ar: 'الملعقة الريفية', revenue: '$890.50', orders: 89, tier: 'PRO', tier_ar: 'الاحترافية' },
-  { date: 'Aug 07, 2026', date_ar: '7 أغسطس 2026', restaurant: 'Burger Haven', restaurant_ar: 'برجر هافن', revenue: '$945.20', orders: 112, tier: 'BASIC', tier_ar: 'الأساسية' },
+  { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'El Gaucho Steakhouse', restaurant_ar: 'مطعم إل غاوتشو', revenue: 'EGP 1,240.00', orders: 142, tier: 'ENTERPRISE', tier_ar: 'المؤسسية' },
+  { date: 'Aug 08, 2026', date_ar: '8 أغسطس 2026', restaurant: 'The Rustic Spoon', restaurant_ar: 'الملعقة الريفية', revenue: 'EGP 890.50', orders: 89, tier: 'PRO', tier_ar: 'الاحترافية' },
+  { date: 'Aug 07, 2026', date_ar: '7 أغسطس 2026', restaurant: 'Burger Haven', restaurant_ar: 'برجر هافن', revenue: 'EGP 945.20', orders: 112, tier: 'BASIC', tier_ar: 'الأساسية' },
 ];
 
 // --- Financial report (Bug-7): revenue / expenses / gross profit for the
 // selected time frame + itemized detailed expenses. TODO(api): /reports/pl.
 const TIMEFRAME_NOTE_AR = 'للمدى الزمني المحدد';
 const FINANCIAL_SUMMARY = [
-  { key: 'totalRevenue', value: '$2,900.00', valueClass: 'text-[#026F4F]' },
-  { key: 'expenses', value: '$1,130.00', valueClass: 'text-[#E52B2B]' },
-  { key: 'grossProfit', value: '$1,770.00', valueClass: 'text-[#2D2F33]' },
+  { key: 'totalRevenue', value: 'EGP 2,900.00', valueClass: 'text-[#026F4F]' },
+  { key: 'expenses', value: 'EGP 1,130.00', valueClass: 'text-[#E52B2B]' },
+  { key: 'grossProfit', value: 'EGP 1,770.00', valueClass: 'text-[#2D2F33]' },
 ] as const;
 
 const DETAILED_EXPENSES = [
-  { category: 'Cloud & Hosting', category_ar: 'الاستضافة والسحابة', amount: '$480.00', share: '42%' },
-  { category: 'Payment Processing Fees', category_ar: 'رسوم معالجة الدفعات', amount: '$250.00', share: '22%' },
-  { category: 'Support Staff Salaries', category_ar: 'رواتب فريق الدعم', amount: '$240.00', share: '21%' },
-  { category: 'SMS & Email Gateway', category_ar: 'بوابة الرسائل والبريد', amount: '$110.00', share: '10%' },
-  { category: 'Marketing & Ads', category_ar: 'التسويق والإعلانات', amount: '$50.00', share: '5%' },
+  { category: 'Cloud & Hosting', category_ar: 'الاستضافة والسحابة', amount: 'EGP 480.00', share: '42%' },
+  { category: 'Payment Processing Fees', category_ar: 'رسوم معالجة الدفعات', amount: 'EGP 250.00', share: '22%' },
+  { category: 'Support Staff Salaries', category_ar: 'رواتب فريق الدعم', amount: 'EGP 240.00', share: '21%' },
+  { category: 'SMS & Email Gateway', category_ar: 'بوابة الرسائل والبريد', amount: 'EGP 110.00', share: '10%' },
+  { category: 'Marketing & Ads', category_ar: 'التسويق والإعلانات', amount: 'EGP 50.00', share: '5%' },
 ];
 
 const RECENT_UPDATES = [
@@ -234,9 +309,9 @@ const RECENT_UPDATES = [
 ];
 
 const TOP_PERFORMERS = [
-  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: '$12.5k' },
-  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: '$12.5k' },
-  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: '$12.5k' },
+  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: 'EGP 12.5k' },
+  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: 'EGP 12.5k' },
+  { name: 'El Gaucho', name_ar: 'إل غاوتشو', orders: '2,420 Orders', orders_ar: '2,420 طلب', revenue: 'EGP 12.5k' },
 ];
 
 const MONTH_AR: Record<string, string> = {
@@ -249,9 +324,9 @@ const PLAN_AR: Record<string, string> = {
 };
 
 const REVENUE_SNAPSHOT = [
-  { key: 'totalRevenueSnap', value: '$15.99' },
-  { key: 'mrrSnap', value: '$15.99' },
-  { key: 'failedPaymentsSnap', value: '$15.99' },
+  { key: 'totalRevenueSnap', value: 'EGP 15.99' },
+  { key: 'mrrSnap', value: 'EGP 15.99' },
+  { key: 'failedPaymentsSnap', value: 'EGP 15.99' },
 ] as const;
 
 function tierPill(tier: string): string {
@@ -283,7 +358,7 @@ function downloadCSV(filename: string, rows: TransactionLedger[]) {
       .concat(
         rows.map(
           (l) =>
-            `${l.invoiceId},"${l.restaurantName}","${l.planName}",$${l.amount},${l.paymentMethod},${l.date},${l.status}`
+            `${l.invoiceId},"${l.restaurantName}","${l.planName}",EGP ${l.amount},${l.paymentMethod},${l.date},${l.status}`
         )
       )
       .join('\n');
@@ -399,7 +474,7 @@ export default function RevenueReportsPage() {
             <div className="h-[273px] w-full mt-4">
               <SelectableAreaChart
                 data={REVENUE_OVER_TIME.map((d) => ({ label: isAr ? (MONTH_AR[d.month] ?? d.month) : d.month, value: d.value }))}
-                formatValue={(v) => `$${v}K`}
+                formatValue={(v) => `EGP ${v}K`}
                 yDomain={[0, 30]}
                 yTicks={[0, 10, 20, 30]}
                 formatTick={(v) => (v === 0 ? '0' : `${v}K`)}
@@ -433,7 +508,7 @@ export default function RevenueReportsPage() {
                           key={bar.plan}
                           type="button"
                           onClick={() => setSelectedPlan((prev) => (prev === bar.plan ? null : bar.plan))}
-                          title={`${isAr ? (PLAN_AR[bar.plan] ?? bar.plan) : bar.plan}: $${bar.value}K`}
+                          title={`${isAr ? (PLAN_AR[bar.plan] ?? bar.plan) : bar.plan}: EGP ${bar.value}K`}
                           className={`w-16 sm:w-20 relative transition-opacity cursor-pointer ${dimmed ? 'opacity-30' : 'opacity-100'}`}
                         >
                           <span
@@ -445,7 +520,7 @@ export default function RevenueReportsPage() {
                               className="absolute start-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#2D2F33] text-white text-xs font-semibold px-2.5 py-1.5 shadow-lg pointer-events-none"
                               style={{ bottom: `calc(${heightPct}% + 10px)` }}
                             >
-                              ${bar.value}K
+                              EGP {bar.value}K
                             </span>
                           )}
                         </button>
@@ -728,7 +803,7 @@ export default function RevenueReportsPage() {
                           {pill.label}
                         </span>
                       </span>
-                      <span className="text-sm font-semibold text-[#2D2F33]" dir="ltr">${tx.amount.toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-[#2D2F33]" dir="ltr">EGP {tx.amount.toFixed(2)}</span>
                       <span className="text-sm text-[#2D2F33]">{locField(locale, tx, 'date')}</span>
                       <span>
                         <span className={`text-sm font-medium px-4 py-1.5 rounded-full ${statusPill(tx.status)}`}>

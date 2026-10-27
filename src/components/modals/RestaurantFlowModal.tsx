@@ -319,7 +319,7 @@ function BranchDetailsPanel({
             <div className="bg-white rounded-2xl p-5">
               <p className="text-[#686868]">{t('revenue30d')}</p>
               <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
-                ${branch.revenueToday.toLocaleString()}
+                EGP {branch.revenueToday.toLocaleString()}
               </p>
               <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                 <TrendingUp size={16} />
@@ -449,7 +449,7 @@ function BranchDetailsPanel({
                 </p>
                 <p className="text-white/60 text-sm mt-2">{tierBlurb(locField(locale, branch, 'planName') || branch.planName, locale)}</p>
                 <p className="text-3xl font-semibold mt-3">
-                  <bdi dir="ltr">${price.amount.toLocaleString()}</bdi>
+                  <bdi dir="ltr">EGP {price.amount.toLocaleString()}</bdi>
                   <span className="text-base font-normal text-white/70">/{billingPerLabel(locale, price.per)}</span>
                 </p>
               </div>
@@ -992,7 +992,7 @@ export default function RestaurantFlowModal({
                     <div className="bg-white rounded-2xl p-5">
                       <p className="text-[#686868]">{t('revenue30d')}</p>
                       <p className="text-3xl font-semibold text-[#2D2F33] mt-2">
-                        ${restaurant.totalRevenue.toLocaleString()}
+                        EGP {restaurant.totalRevenue.toLocaleString()}
                       </p>
                       <p className="flex items-center gap-1.5 text-[#158F15] text-sm mt-2">
                         <TrendingUp size={16} />
@@ -1167,7 +1167,7 @@ export default function RestaurantFlowModal({
                         </p>
                         <p className="text-white/60 text-sm mt-2">{tierBlurb(locField(locale, restaurant, 'planName') || restaurant.planName, locale)}</p>
                         <p className="text-3xl font-semibold mt-3">
-                          <bdi dir="ltr">${restaurant.planPrice.toLocaleString()}</bdi>
+                          <bdi dir="ltr">EGP {restaurant.planPrice.toLocaleString()}</bdi>
                           <span className="text-base font-normal text-white/70">
                             /{billingPerLabel(locale, restaurant.planBilling === 'Monthly' ? 'Month' : restaurant.planBilling)}
                           </span>

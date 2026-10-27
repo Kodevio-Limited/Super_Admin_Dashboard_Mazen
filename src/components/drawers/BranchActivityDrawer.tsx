@@ -26,7 +26,7 @@ export default function BranchActivityDrawer({
   const tc = useTranslations('common.actions');
   const activities = branch.activities || [
     { id: '1', time: '11:30 AM', time_ar: '11:30 ص', description: 'Kitchen station active tickets cleared', description_ar: 'تم مسح التذاكر النشطة في محطة المطبخ', user: 'Kitchen Team', user_ar: 'فريق المطبخ' },
-    { id: '2', time: '10:00 AM', time_ar: '10:00 ص', description: 'Cashier shift opened with $250 float', description_ar: 'تم فتح وردية أمين الصندوق بعهدة 250 دولار', user: 'Cashier 01', user_ar: 'أمين الصندوق 01' },
+    { id: '2', time: '10:00 AM', time_ar: '10:00 ص', description: 'Cashier shift opened with 250 EGP float', description_ar: 'تم فتح وردية أمين الصندوق بعهدة 250 ج.م', user: 'Cashier 01', user_ar: 'أمين الصندوق 01' },
     { id: '3', time: '09:00 AM', time_ar: '09:00 ص', description: 'Branch opened for business', description_ar: 'تم فتح الفرع للعمل', user: branch.managerName, user_ar: branch.managerName_ar },
   ];
 

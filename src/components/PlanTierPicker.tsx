@@ -15,9 +15,9 @@ import {
 } from '../data/figmaPlans';
 
 interface PlanTierPickerProps {
-  selectedTier: FigmaTier;
+  selectedTier: FigmaTier | null;
   billingCycle: FigmaBillingCycle;
-  onSelectTier: (tier: FigmaTier) => void;
+  onSelectTier: (tier: FigmaTier | null) => void;
   onSelectCycle: (cycle: FigmaBillingCycle) => void;
   showPrices?: boolean;
   // Stacked single column for narrow left slide-in panels.
@@ -74,7 +74,7 @@ export default function PlanTierPicker({
           return (
             <div
               key={plan.tier}
-              onClick={() => onSelectTier(plan.tier)}
+              onClick={() => onSelectTier(isSelected ? null : plan.tier)}
               className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col bg-white ${
                 isSelected
                   ? 'border-[#026F4F] shadow-md'
@@ -115,7 +115,7 @@ export default function PlanTierPicker({
                 <p className="mt-3 pt-2 border-t border-gray-100 text-[11px] text-[#6E727A]">
                   <bdi>
                   {tSub('billedPerCycle', {
-                    total: '$' + cycleTotal(plan.monthlyPrice, billingCycle).toLocaleString(),
+                    total: 'EGP ' + cycleTotal(plan.monthlyPrice, billingCycle).toLocaleString(),
                     cycle: tSub(`billingCycle.${billingCycle.toLowerCase()}` as any),
                   })}
                   </bdi>

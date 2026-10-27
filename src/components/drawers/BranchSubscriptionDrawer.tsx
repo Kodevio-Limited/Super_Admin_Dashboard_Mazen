@@ -71,7 +71,7 @@ export default function BranchSubscriptionDrawer({
               <div className="p-4 bg-[#F8F9FA] rounded-xl border border-gray-200 space-y-2 text-xs">
                 <div className="flex items-center justify-between font-medium">
                   <span className="text-[#686868]">{isAr ? 'الرسوم الشهرية المخصصة:' : 'Monthly Fee Allocated:'}</span>
-                  <span className="font-bold text-[#2D2F33]"><bdi dir="ltr">${branch.monthlyFee}{isAr ? '/شهر' : '/mo'}</bdi></span>
+                  <span className="font-bold text-[#2D2F33]"><bdi dir="ltr">EGP {branch.monthlyFee}{isAr ? '/شهر' : '/mo'}</bdi></span>
                 </div>
                 <div className="flex items-center justify-between font-medium">
                   <span className="text-[#686868]">{isAr ? 'نقاط البيع:' : 'POS Terminals:'}</span>

@@ -203,52 +203,51 @@ export default function UsersPage() {
             <div className="min-w-[960px]">
               <div className={`${USER_COLS} py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide`}>
                 <span>{t('columns.userDetails')}</span>
-                <span>{t('columns.role')}</span>
-                <span>{t('columns.restaurant')}</span>
-                <span>{t('columns.branch')}</span>
-                <span>{t('columns.status')}</span>
+                <span className="text-center">{t('columns.role')}</span>
+                <span className="text-center">{t('columns.restaurant')}</span>
+                <span className="text-center">{t('columns.branch')}</span>
+                <span className="text-center">{t('columns.status')}</span>
                 <span className="text-center">{t('columns.actions')}</span>
               </div>
               {groups.length === 0 ? (
                 <p className="px-6 py-10 text-center text-sm text-[#989898]">{t('noUsersMatch')}</p>
               ) : (
                 groups.map((group) => {
-                  const owner = group.restaurant && group.users.find((u) => u.role === 'Restaurant Owner');
                   const isOpen = searchActive || (expanded[group.key] ?? false);
                   return (
                     <div key={group.key} className="border-t border-gray-100 first:border-t-0">
-                      {/* Group row: restaurant (with owner contact) or a lone user */}
-                      <div className={`${USER_COLS} py-5`}>
-                        <div className="flex items-start gap-2">
-                          {group.restaurant ? (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setExpanded((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
-                                }
-                                aria-label={isOpen ? t('collapseUsers') : t('expandUsers')}
-                                className="mt-1 text-[#2D2F33] hover:text-[#026F4F] transition-colors"
-                              >
-                                {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                              </button>
-                              <div>
-                                <p className="font-semibold text-[#2D2F33] text-[17px]">
-                                  {locField(locale, group.restaurant, 'name')}
-                                </p>
-                                <p className="text-sm text-[#989898] mt-0.5">
-                                  {t('usersCountLabel', { count: group.users.length })}
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <UserLeaf user={group.users[0]} />
-                          )}
-                        </div>
-                        {group.restaurant && <span className="text-sm text-[#2D2F33]">{owner ? roleShort(owner.role, locale) : '—'}</span>}
-                        {group.restaurant && <span className="text-sm text-[#2D2F33]">{locField(locale, group.restaurant, 'name')}</span>}
-                        {group.restaurant && <span className="text-sm text-[#989898]">—</span>}
-                        {group.restaurant && (
-                          <span>
+                      {group.restaurant ? (
+                        /* Restaurant group row */
+                        <div className={`${USER_COLS} py-5`}>
+                          <div
+                            className="flex items-start gap-2 cursor-pointer select-none"
+                            onClick={() =>
+                              setExpanded((prev) => ({ ...prev, [group.key]: !(prev[group.key] ?? false) }))
+                            }
+                          >
+                            <button
+                              type="button"
+                              aria-label={isOpen ? t('collapseUsers') : t('expandUsers')}
+                              className="mt-1 text-[#2D2F33] hover:text-[#026F4F] transition-colors cursor-pointer"
+                            >
+                              {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            </button>
+                            <div>
+                              <p className="font-semibold text-[#2D2F33] text-[17px]">
+                                {locField(locale, group.restaurant, 'name')}
+                              </p>
+                              <p className="text-sm text-[#989898] mt-0.5">
+                                {t('usersCountLabel', { count: group.users.length })}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Role: restaurant is a restaurant, not an owner — display dash */}
+                          <div className="flex justify-center items-center text-sm text-[#989898]">—</div>
+                          <div className="flex justify-center items-center text-sm text-[#2D2F33] text-center">
+                            {locField(locale, group.restaurant, 'name')}
+                          </div>
+                          <div className="flex justify-center items-center text-sm text-[#989898]">—</div>
+                          <div className="flex justify-center items-center">
                             <span
                               className={`text-sm font-medium px-4 py-1.5 rounded-full ${
                                 group.restaurant.status === 'Active'
@@ -264,25 +263,74 @@ export default function UsersPage() {
                                   ? ts('suspended')
                                   : ts('inactive')}
                             </span>
-                          </span>
-                        )}
-                        {group.restaurant && <span className="text-center">—</span>}
-                      </div>
+                          </div>
+                          <div className="flex justify-center items-center text-sm text-[#989898]">—</div>
+                        </div>
+                      ) : (
+                        /* Standalone user row */
+                        <div className={`${USER_COLS} py-5`}>
+                          <UserLeaf user={group.users[0]} />
+                          <div className="flex justify-center items-center">
+                            <span className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full ${rolePill(group.users[0].role)}`}>
+                              {roleShort(group.users[0].role, locale)}
+                            </span>
+                          </div>
+                          <div className="flex justify-center items-center text-sm text-[#2D2F33] text-center">
+                            {group.users[0].restaurantName ? locField(locale, group.users[0], 'restaurantName') : <span className="text-[#989898]">—</span>}
+                          </div>
+                          <div className="flex justify-center items-center text-sm text-[#989898] text-center">
+                            {group.users[0].branchName ? locField(locale, group.users[0], 'branchName') : '—'}
+                          </div>
+                          <div className="flex justify-center items-center">
+                            <span
+                              className={`text-sm font-medium px-4 py-1.5 rounded-full ${
+                                group.users[0].status === 'Active'
+                                  ? 'bg-[#D9F5D9] text-[#158F15]'
+                                  : group.users[0].status === 'Suspended'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-gray-100 text-[#686868]'
+                              }`}
+                            >
+                              {group.users[0].status === 'Active'
+                                ? ts('active')
+                                : group.users[0].status === 'Suspended'
+                                  ? ts('suspended')
+                                  : ts('inactive')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openDetails(group.users[0], false, 'edit')}
+                              aria-label={t('editUser', { name: group.users[0].name })}
+                              className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors cursor-pointer"
+                            >
+                              <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
-                      {/* Staff sub-rows */}
-                      {isOpen && group.users.length > 1 && (
-                        <div className="mx-4 sm:mx-6 mb-4 bg-[#F8F9FA] rounded-2xl px-6 py-2 divide-y divide-gray-200/70">
+                      {/* Staff sub-rows: full-width container matching table grid exactly */}
+                      {group.restaurant && isOpen && group.users.length > 0 && (
+                        <div className="bg-[#F8F9FA]/80 divide-y divide-gray-200/60 border-t border-gray-100">
                           {group.users.map((u) => (
                             <div key={u.id} className={`${USER_COLS} py-4`}>
-                              <UserLeaf user={u} />
-                              <span>
+                              <div className="ps-6 sm:ps-8">
+                                <UserLeaf user={u} />
+                              </div>
+                              <div className="flex justify-center items-center">
                                 <span className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full ${rolePill(u.role)}`}>
                                   {roleShort(u.role, locale)}
                                 </span>
-                              </span>
-                              <span className="text-sm text-[#2D2F33]">{u.restaurantName ? locField(locale, u, 'restaurantName') : '—'}</span>
-                              <span className="text-sm text-[#989898]">{u.branchName ? locField(locale, u, 'branchName') : '—'}</span>
-                              <span>
+                              </div>
+                              <div className="flex justify-center items-center text-sm text-[#2D2F33] text-center">
+                                {u.restaurantName ? locField(locale, u, 'restaurantName') : <span className="text-[#989898]">—</span>}
+                              </div>
+                              <div className="flex justify-center items-center text-sm text-[#989898] text-center">
+                                {u.branchName ? locField(locale, u, 'branchName') : '—'}
+                              </div>
+                              <div className="flex justify-center items-center">
                                 <span
                                   className={`text-sm font-medium px-4 py-1.5 rounded-full ${
                                     u.status === 'Active'
@@ -294,16 +342,17 @@ export default function UsersPage() {
                                 >
                                   {u.status === 'Active' ? ts('active') : u.status === 'Suspended' ? ts('suspended') : ts('inactive')}
                                 </span>
-                              </span>
-                              <span className="flex items-center justify-center gap-2">
+                              </div>
+                              <div className="flex items-center justify-center gap-2">
                                 <button
+                                  type="button"
                                   onClick={() => openDetails(u, false, 'edit')}
                                   aria-label={t('editUser', { name: u.name })}
-                                  className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                                  className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors cursor-pointer"
                                 >
                                   <Image src="/images/figma/pencil.svg" alt="" width={18} height={18} className="size-[18px]" />
                                 </button>
-                              </span>
+                              </div>
                             </div>
                           ))}
                         </div>

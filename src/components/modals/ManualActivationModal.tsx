@@ -92,7 +92,7 @@ export default function ManualActivationModal({
               >
                 {plans.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {locField(locale, p, 'name')} ({p.type === 'Restaurant' ? t('typeRestaurant') : t('typeBranch')}) - ${p.priceMonthly}{t('perMonthSuffix')}
+                    {locField(locale, p, 'name')} ({p.type === 'Restaurant' ? t('typeRestaurant') : t('typeBranch')}) - EGP {p.priceMonthly}{t('perMonthSuffix')}
                   </option>
                 ))}
               </select>

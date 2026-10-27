@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus, Trash2, Share2 } from 'lucide-react';
+import { X, Check, Copy, ArrowRight, ArrowLeft, Upload, BadgeCheck, Plus, Trash2, Share2, AlertCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import PlanTierPicker from '../PlanTierPicker';
 import { toArDate, planNameAr, pickAr } from '../../lib/localize';
@@ -113,15 +113,18 @@ export default function CreateRestaurantModal({
   // S2 — branches (Figma 1259:651; "+ Add Branch" appends another block)
   const [draftBranches, setDraftBranches] = useState<DraftBranch[]>([{ ...EMPTY_BRANCH }]);
 
-  // S3 — plan (Figma 1859:336); Bug-14: one extra plan choice per branch.
-  const [selectedTier, setSelectedTier] = useState<FigmaTier>('Pro');
+  // S3 — plan (Figma 1859:336); Bug-1: optional restaurant plan + branch plan exclusion.
+  const [selectedTier, setSelectedTier] = useState<FigmaTier | null>(null);
   const [billingCycle, setBillingCycle] = useState<FigmaBillingCycle>('Yearly');
-  // Per-branch tier, defaulting to the restaurant plan tier at entry to S3.
+  // Per-branch tier, defaulting to 'Basic'
   const [branchTiers, setBranchTiers] = useState<FigmaTier[]>([]);
+  const [excludedBranches, setExcludedBranches] = useState<Record<number, boolean>>({});
+  const [branchToExclude, setBranchToExclude] = useState<number | null>(null);
 
   // S4 — credentials
   const [credentials, setCredentials] = useState({ username: '', temporaryPassword: '' });
   const t = useTranslations('sa.createRestaurant');
+  const tc = useTranslations('common.actions');
   const locale = useLocale();
   const isAr = locale === 'ar';
   const CATEGORY_EN = ['Japanese & Ramen', 'Italian & Pizzeria', 'American Burger & Grill', 'Mexican & Tacos', 'French Bistro & Cafe', 'Seafood & Fine Dining'];
@@ -176,8 +179,7 @@ export default function CreateRestaurantModal({
     // Bug-17: exactly one Main Branch — block duplicate/“main” names on added branches.
     const names = draftBranches.slice(1).map((b) => b.name.trim().toLowerCase()).filter(Boolean);
     if (names.length !== new Set(names).size || names.includes('main branch')) return;
-    // Bug-14: reset each branch's plan choice to the restaurant tier on entry.
-    setBranchTiers(draftBranches.map(() => selectedTier));
+    setBranchTiers((prev) => draftBranches.map((_, i): FigmaTier => prev[i] ?? 'Basic'));
     setStep('plan');
   };
 
@@ -185,35 +187,38 @@ export default function CreateRestaurantModal({
     const tempPass = 'Echo#' + Math.floor(100000 + Math.random() * 900000);
     setCredentials({ username: ownerEmail, temporaryPassword: tempPass });
 
-    const chosenTier = FIGMA_TIERS.find((p) => p.tier === selectedTier)!;
+    const chosenTier = selectedTier ? FIGMA_TIERS.find((p) => p.tier === selectedTier) : null;
     const id = `rest-${Date.now()}`;
     const ownerPhone = `${dialCode} ${nationalNumber.trim()}`.trim();
-    const branchPlans: FigmaTier[] = branchTiers.length === draftBranches.length
-      ? branchTiers
-      : draftBranches.map(() => selectedTier);
     const branches = draftBranches.map((b, i) => {
-      const branchTier = FIGMA_TIERS.find((p) => p.tier === branchPlans[i]) ?? chosenTier;
+      const isExcluded = !selectedTier || !!excludedBranches[i];
+      const branchTierName = branchTiers[i] ?? (selectedTier ?? 'Basic');
+      const branchTier = FIGMA_TIERS.find((p) => p.tier === branchTierName) ?? FIGMA_TIERS[0];
+      const planName = isExcluded
+        ? `${branchTier.tier} Plan`
+        : `${chosenTier?.tier || 'Covered'} (Covered by Restaurant Plan)`;
+      const monthlyFee = isExcluded ? branchTier.monthlyPrice : 0;
       return {
-      id: `br-${Date.now()}-${i}`,
-      // Bug-13: the Main Branch name is typed by the user (fallback default).
-      // Bug-17: first block is still the single Main Branch.
-      name: i === 0 ? (b.name.trim() || `${name} Main Branch`) : (b.name || `${name} Branch ${i + 1}`),
-      name_ar: b.name || undefined,
-      address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
-      phone: ownerPhone,
-      managerName: ownerName,
-      managerEmail: ownerEmail,
-      staffCount: 1,
-      ordersToday: 0,
-      revenueToday: 0,
-      status: 'Active' as const,
-      planName: `${branchTier.tier} Plan`,
-      planName_ar: planNameAr(`${branchTier.tier} Plan`),
-      planExpiry: 'Sep 30, 2027',
-      planExpiry_ar: toArDate('Sep 30, 2027'),
-      monthlyFee: branchTier.monthlyPrice,
+        id: `br-${Date.now()}-${i}`,
+        name: i === 0 ? (b.name.trim() || `${name} Main Branch`) : (b.name || `${name} Branch ${i + 1}`),
+        name_ar: b.name || undefined,
+        address: [b.address, b.cityCountry].filter(Boolean).join(', ') || address,
+        phone: ownerPhone,
+        managerName: ownerName,
+        managerEmail: ownerEmail,
+        staffCount: 1,
+        ordersToday: 0,
+        revenueToday: 0,
+        status: 'Active' as const,
+        planName,
+        planName_ar: planNameAr(planName),
+        planExpiry: 'Sep 30, 2027',
+        planExpiry_ar: toArDate('Sep 30, 2027'),
+        monthlyFee,
       };
     });
+
+    const totalBranchFees = branches.reduce((acc, br) => acc + br.monthlyFee, 0);
 
     setCreatedId(id);
     onSuccess({
@@ -229,11 +234,11 @@ export default function CreateRestaurantModal({
       status: 'Active' as const,
       joinedDate: 'Just now',
       joinedDate_ar: 'الآن',
-      planName: `${chosenTier.tier} Plan`,
-      planName_ar: planNameAr(`${chosenTier.tier} Plan`),
-      planType: 'Restaurant',
+      planName: chosenTier ? `${chosenTier.tier} Plan` : (isAr ? 'خطط الفروع فقط' : 'Branch Plans Only'),
+      planName_ar: chosenTier ? planNameAr(`${chosenTier.tier} Plan`) : (isAr ? 'خطط الفروع فقط' : 'Branch Plans Only'),
+      planType: chosenTier ? 'Restaurant' : 'Branch',
       planBilling: billingCycle,
-      planPrice: cycleTotal(chosenTier.monthlyPrice, billingCycle),
+      planPrice: chosenTier ? cycleTotal(chosenTier.monthlyPrice, billingCycle) : totalBranchFees,
       planExpiry: 'Sep 30, 2027',
       planExpiry_ar: toArDate('Sep 30, 2027'),
       totalBranches: branches.length,
@@ -511,9 +516,7 @@ export default function CreateRestaurantModal({
                 onSelectTier={setSelectedTier}
                 onSelectCycle={setBillingCycle}
               />
-              {/* Bug-14: a plan pick for each branch too — the Restaurant
-                  Plan above covers the restaurant itself, each branch below
-                  gets its own tier (price follows the chosen billing cycle). */}
+              {/* Bug-1: if restaurant plan is chosen, branches are covered by default with exclusion option. If no restaurant plan, individual branch plan is chosen. */}
               <div className="space-y-3 pt-4 border-t border-gray-100">
                 <div>
                   <h4 className="text-xl font-semibold text-[#2D2F33]">{t('branchPlans')}</h4>
@@ -521,7 +524,8 @@ export default function CreateRestaurantModal({
                 </div>
                 <div className="space-y-2.5">
                   {draftBranches.map((b, i) => {
-                    const current = branchTiers[i] ?? selectedTier;
+                    const isCovered = selectedTier && !excludedBranches[i];
+                    const current = branchTiers[i] ?? (selectedTier ?? 'Basic');
                     return (
                       <div key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-full bg-[#F2F2F2] px-5 py-2">
                         <span className="text-[15px] font-semibold text-[#2D2F33] max-w-[55%] truncate">
@@ -529,29 +533,92 @@ export default function CreateRestaurantModal({
                             ? (b.name.trim() || t('mainBranch'))
                             : (b.name.trim() || t('branchN', { n: i + 1 }))}
                         </span>
-                        <select
-                          value={current}
-                          onChange={(e) =>
-                            setBranchTiers((prev) => {
-                              const next = prev.length === draftBranches.length
-                                ? [...prev]
-                                : draftBranches.map(() => selectedTier);
-                              next[i] = e.target.value as FigmaTier;
-                              return next;
-                            })
-                          }
-                          aria-label={t('branchPlanLabel', { n: i + 1 })}
-                          className="h-11 px-4 bg-white border border-gray-200 rounded-full text-sm font-medium text-[#2D2F33] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30"
-                        >
-                          {FIGMA_TIERS.map((p) => (
-                            <option key={p.tier} value={p.tier}>{pickTierLabel(p)}</option>
-                          ))}
-                        </select>
+                        {isCovered ? (
+                          <button
+                            type="button"
+                            onClick={() => setBranchToExclude(i)}
+                            className="group flex items-center gap-2 h-11 px-4 bg-[#026F4F]/10 hover:bg-[#026F4F]/20 text-[#026F4F] border border-[#026F4F]/20 rounded-full text-sm font-medium transition-colors cursor-pointer"
+                            title={t('coveredByRestaurantPlan')}
+                          >
+                            <Check size={16} className="text-[#026F4F]" />
+                            <span>{t('coveredByRestaurantPlan')}</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={current}
+                              onChange={(e) =>
+                                setBranchTiers((prev) => {
+                                  const next = prev.length === draftBranches.length
+                                    ? [...prev]
+                                    : draftBranches.map((): FigmaTier => 'Basic');
+                                  next[i] = e.target.value as FigmaTier;
+                                  return next;
+                                })
+                              }
+                              aria-label={t('branchPlanLabel', { n: i + 1 })}
+                              className="h-11 px-4 bg-white border border-gray-200 rounded-full text-sm font-medium text-[#2D2F33] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30"
+                            >
+                              {FIGMA_TIERS.map((p) => (
+                                <option key={p.tier} value={p.tier}>{pickTierLabel(p)}</option>
+                              ))}
+                            </select>
+                            {selectedTier && excludedBranches[i] && (
+                              <button
+                                type="button"
+                                onClick={() => setExcludedBranches((prev) => ({ ...prev, [i]: false }))}
+                                className="text-xs text-[#026F4F] hover:underline font-medium px-2 py-1 cursor-pointer"
+                              >
+                                {t('reinclude')}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
+
+              {/* Exclusion warning modal */}
+              {branchToExclude !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+                  <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+                    <div className="flex items-center gap-3 text-[#E85E5E]">
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <AlertCircle size={22} className="text-[#E85E5E]" />
+                      </div>
+                      <h4 className="font-semibold text-lg text-[#2D2F33]">
+                        {isAr ? 'استبعاد الفرع من خطة المطعم' : 'Exclude Branch from Plan'}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-[#686868] leading-relaxed">
+                      {t('excludeBranchWarning')}
+                    </p>
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setBranchToExclude(null)}
+                        className="px-5 py-2.5 rounded-full text-sm font-medium text-[#686868] hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
+                        {tc('cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const idx = branchToExclude;
+                          setExcludedBranches((prev) => ({ ...prev, [idx]: true }));
+                          setBranchToExclude(null);
+                        }}
+                        className="px-5 py-2.5 rounded-full text-sm font-medium bg-[#026F4F] hover:bg-[#01533B] text-white shadow-sm transition-colors cursor-pointer"
+                      >
+                        {t('excludeAndAssign')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button type="button" onClick={() => setStep('branches')} className="px-6 py-3 rounded-full text-sm font-semibold text-[#686868] hover:bg-gray-100 flex items-center gap-2 transition-colors">
               <ArrowLeft size={16} className="rtl:scale-x-[-1]" />

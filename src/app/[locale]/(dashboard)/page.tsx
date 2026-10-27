@@ -162,9 +162,29 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
           );
         })}
       </div>
-      <div ref={chartRef} className="relative mt-2 min-h-0 flex-1 cursor-pointer">
+      <div ref={chartRef} className="relative mt-2 min-h-0 flex-1 cursor-pointer select-none">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={REVENUE_BY_TIER} margin={{ top: 10, right: 10, left: -12, bottom: 0 }} onClick={handleClick}>
+          <LineChart data={REVENUE_BY_TIER} margin={{ top: 12, right: 12, left: -12, bottom: 0 }} onClick={handleClick}>
+            <defs>
+              {TIER_SERIES.map((s) => (
+                <filter
+                  key={`shadow-${s.key}`}
+                  id={`shadow-${s.key}`}
+                  x="-20%"
+                  y="-20%"
+                  width="140%"
+                  height="180%"
+                >
+                  <feDropShadow
+                    dx="0"
+                    dy="4"
+                    stdDeviation="4"
+                    floodColor={s.color}
+                    floodOpacity="0.42"
+                  />
+                </filter>
+              ))}
+            </defs>
             <CartesianGrid vertical={false} stroke="#E9E9E9" />
             <XAxis
               dataKey="month"
@@ -190,6 +210,7 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
                 stroke="#026F4F"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
+                strokeOpacity={0.6}
               />
             )}
             {visible.map((s, si) => (
@@ -198,30 +219,38 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
                 type="monotone"
                 dataKey={s.key}
                 stroke={s.color}
-                strokeWidth={2.5}
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter={`url(#shadow-${s.key})`}
                 isAnimationActive={false}
                 activeDot={false}
                 dot={(props: any) => {
                   const { index, cx, cy } = props;
                   if (index !== selectedIndex) return <g key={`dot-${s.key}-${index}`} />;
                   return (
-                    <circle
-                      key={`dot-${s.key}-${index}`}
-                      cx={cx}
-                      cy={cy}
-                      r={5}
-                      fill={s.color}
-                      ref={
-                        si === 0
-                          ? (node: SVGCircleElement | null) => {
-                              if (!node) return;
-                              setDotPos((prev) =>
-                                prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
-                              );
-                            }
-                          : undefined
-                      }
-                    />
+                    <g key={`dot-${s.key}-${index}`}>
+                      <circle cx={cx} cy={cy} r={11} fill={s.color} fillOpacity={0.16} />
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={5.5}
+                        fill={s.color}
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
+                        style={{ filter: `drop-shadow(0px 2px 4px ${s.color}66)` }}
+                        ref={
+                          si === 0
+                            ? (node: SVGCircleElement | null) => {
+                                if (!node) return;
+                                setDotPos((prev) =>
+                                  prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
+                                );
+                              }
+                            : undefined
+                        }
+                      />
+                    </g>
                   );
                 }}
               />
@@ -231,19 +260,22 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
 
         {selected && dotPos && (
           <div
-            className="pointer-events-none absolute z-10"
-            style={{ left: dotPos.x, top: dotPos.y, transform: 'translate(-50%, calc(-100% - 12px))' }}
+            className="pointer-events-none absolute z-20 transition-all duration-150"
+            style={{ left: dotPos.x, top: dotPos.y, transform: 'translate(-50%, calc(-100% - 14px))' }}
           >
-            <div className="rounded-[10px] border border-[#E9E9E9] bg-white p-3 shadow-md whitespace-nowrap">
-              <p className="text-sm font-semibold text-[#2D2F33]">{label(selected.month)}</p>
+            <div className="rounded-xl border border-gray-100 bg-white/95 px-3.5 py-2.5 shadow-xl backdrop-blur-sm whitespace-nowrap min-w-[130px]">
+              <p className="text-xs font-semibold text-[#989898] border-b border-gray-100 pb-1 mb-1.5">{label(selected.month)}</p>
               {visible.map((s) => (
-                <p key={s.key} className="mt-1 flex items-center gap-1.5 text-sm">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                  <span className="text-[#686868]">{s.key}</span>
-                  <span className="font-semibold text-[#2D2F33]">EGP {(selected as any)[s.key]}K</span>
-                </p>
+                <div key={s.key} className="flex items-center justify-between gap-3 text-xs py-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+                    <span className="text-[#686868]">{s.key}</span>
+                  </div>
+                  <span className="font-bold text-[#2D2F33]">EGP {(selected as any)[s.key]}K</span>
+                </div>
               ))}
             </div>
+            <div className="mx-auto -mt-1 h-2 w-2 rotate-45 border-r border-b border-gray-100 bg-white shadow-sm" />
           </div>
         )}
       </div>

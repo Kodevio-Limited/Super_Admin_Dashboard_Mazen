@@ -73,13 +73,10 @@ export default function SelectableAreaChart({
         <ComposedChart data={data} margin={{ top: 12, right: 12, left: -12, bottom: 0 }} onClick={handleClick}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#026F4F" stopOpacity={0.24} />
-              <stop offset="60%" stopColor="#026F4F" stopOpacity={0.06} />
+              <stop offset="0%" stopColor="#026F4F" stopOpacity={0.18} />
+              <stop offset="60%" stopColor="#026F4F" stopOpacity={0.04} />
               <stop offset="100%" stopColor="#026F4F" stopOpacity={0.0} />
             </linearGradient>
-            <filter id={`${gradientId}-line-shadow`} x="-20%" y="-20%" width="140%" height="180%">
-              <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#026F4F" floodOpacity="0.4" />
-            </filter>
           </defs>
           <CartesianGrid vertical={false} stroke="#E9E9E9" />
           <XAxis
@@ -119,34 +116,30 @@ export default function SelectableAreaChart({
             type="monotone"
             dataKey="value"
             stroke="#026F4F"
-            strokeWidth={3}
+            strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter={`url(#${gradientId}-line-shadow)`}
             isAnimationActive={false}
             activeDot={false}
             dot={(props: any) => {
               const { index, cx, cy } = props;
               if (index !== selectedIndex) return <g key={`dot-${index}`} />;
               return (
-                <g key={`dot-${index}`}>
-                  <circle cx={cx} cy={cy} r={12} fill="#026F4F" fillOpacity={0.16} />
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={6}
-                    fill="#026F4F"
-                    stroke="#FFFFFF"
-                    strokeWidth={2.5}
-                    style={{ filter: 'drop-shadow(0px 2px 4px rgba(2, 111, 79, 0.45))' }}
-                    ref={(node) => {
-                      if (!node) return;
-                      setDotPos((prev) =>
-                        prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
-                      );
-                    }}
-                  />
-                </g>
+                <circle
+                  key={`dot-${index}`}
+                  cx={cx}
+                  cy={cy}
+                  r={5}
+                  fill="#026F4F"
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
+                  ref={(node) => {
+                    if (!node) return;
+                    setDotPos((prev) =>
+                      prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
+                    );
+                  }}
+                />
               );
             }}
           />

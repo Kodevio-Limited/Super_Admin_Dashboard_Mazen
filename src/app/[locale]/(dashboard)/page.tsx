@@ -165,26 +165,6 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
       <div ref={chartRef} className="relative mt-2 min-h-0 flex-1 cursor-pointer select-none">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={REVENUE_BY_TIER} margin={{ top: 12, right: 12, left: -12, bottom: 0 }} onClick={handleClick}>
-            <defs>
-              {TIER_SERIES.map((s) => (
-                <filter
-                  key={`shadow-${s.key}`}
-                  id={`shadow-${s.key}`}
-                  x="-20%"
-                  y="-20%"
-                  width="140%"
-                  height="180%"
-                >
-                  <feDropShadow
-                    dx="0"
-                    dy="4"
-                    stdDeviation="4"
-                    floodColor={s.color}
-                    floodOpacity="0.42"
-                  />
-                </filter>
-              ))}
-            </defs>
             <CartesianGrid vertical={false} stroke="#E9E9E9" />
             <XAxis
               dataKey="month"
@@ -194,8 +174,8 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
               tickFormatter={label}
             />
             <YAxis
-              domain={[0, 30]}
-              ticks={[0, 10, 20, 30]}
+              domain={[0, 10]}
+              ticks={[0, 2.5, 5, 7.5, 10]}
               tick={{ fill: 'rgba(0,0,0,0.4)', fontSize: 12 }}
               tickLine={false}
               axisLine={false}
@@ -205,7 +185,7 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
               <ReferenceLine
                 segment={[
                   { x: selected.month, y: 0 },
-                  { x: selected.month, y: 30 },
+                  { x: selected.month, y: 10 },
                 ]}
                 stroke="#026F4F"
                 strokeWidth={1.5}
@@ -219,38 +199,34 @@ function RevenueTrendsByPlan({ isAr }: { isAr: boolean }) {
                 type="monotone"
                 dataKey={s.key}
                 stroke={s.color}
-                strokeWidth={3}
+                strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                filter={`url(#shadow-${s.key})`}
                 isAnimationActive={false}
                 activeDot={false}
                 dot={(props: any) => {
                   const { index, cx, cy } = props;
                   if (index !== selectedIndex) return <g key={`dot-${s.key}-${index}`} />;
                   return (
-                    <g key={`dot-${s.key}-${index}`}>
-                      <circle cx={cx} cy={cy} r={11} fill={s.color} fillOpacity={0.16} />
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={5.5}
-                        fill={s.color}
-                        stroke="#FFFFFF"
-                        strokeWidth={2}
-                        style={{ filter: `drop-shadow(0px 2px 4px ${s.color}66)` }}
-                        ref={
-                          si === 0
-                            ? (node: SVGCircleElement | null) => {
-                                if (!node) return;
-                                setDotPos((prev) =>
-                                  prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
-                                );
-                              }
-                            : undefined
-                        }
-                      />
-                    </g>
+                    <circle
+                      key={`dot-${s.key}-${index}`}
+                      cx={cx}
+                      cy={cy}
+                      r={5}
+                      fill={s.color}
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
+                      ref={
+                        si === 0
+                          ? (node: SVGCircleElement | null) => {
+                              if (!node) return;
+                              setDotPos((prev) =>
+                                prev && prev.x === cx && prev.y === cy ? prev : { x: cx, y: cy },
+                              );
+                            }
+                          : undefined
+                      }
+                    />
                   );
                 }}
               />

@@ -63,29 +63,35 @@ function DelayedPaymentsModal({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full text-start border-collapse min-w-[760px]">
+        <table className="w-full text-start border-collapse min-w-[760px] table-fixed">
+          <colgroup>
+            <col className="w-[26%]" />
+            <col className="w-[18%]" />
+            <col className="w-[18%]" />
+            <col className="w-[16%]" />
+            <col className="w-[22%]" />
+          </colgroup>
           <thead>
             <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-              <th className="whitespace-nowrap py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
-              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.planTier')}</th>
-              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.revenue')}</th>
-              <th className="whitespace-nowrap py-3 px-4 text-start">Overdue</th>
-              <th className="whitespace-nowrap py-3 px-4 rounded-e-lg">Contact</th>
+              <th className="py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
+              <th className="py-3 px-4 text-center">{t('columns.planTier')}</th>
+              <th className="py-3 px-4 text-center">{t('columns.revenue')}</th>
+              <th className="py-3 px-4 text-center">Overdue</th>
+              <th className="py-3 px-4 text-start rounded-e-lg">Contact</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
             {DELAYED_ROWS.map((row, i) => (
-              <tr key={i}>
-                <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33]">{row.restaurant}</td>
-                <td className="whitespace-nowrap py-4 px-4 text-[#686868]">{row.plan}</td>
-                <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#E52B2B]"><bdi dir="ltr">{row.amount}</bdi></td>
-                <td className="whitespace-nowrap py-4 px-4">
+              <tr key={i} className="hover:bg-gray-50/60 transition-colors">
+                <td className="py-4 px-4 font-semibold text-[#2D2F33] truncate">{row.restaurant}</td>
+                <td className="py-4 px-4 text-center text-[#686868]">{row.plan}</td>
+                <td className="py-4 px-4 text-center font-semibold text-[#E52B2B]" dir="ltr"><bdi>{row.amount}</bdi></td>
+                <td className="py-4 px-4 text-center">
                   <span className="inline-block rounded-lg bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
                 </td>
-                <td className="whitespace-nowrap py-4 px-4 text-[#686868]">
+                <td className="py-4 px-4 text-[#686868]">
                   <span className="flex flex-col gap-0.5">
                     <bdi dir="ltr">{row.contact}</bdi>
-                    {/* Bug-3: phone number next to the email. */}
                     {row.phone && <bdi dir="ltr" className="text-xs">{row.phone}</bdi>}
                   </span>
                 </td>
@@ -203,41 +209,60 @@ function DetailedReportAllModal({ onClose }: { onClose: () => void }) {
       )}
 
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full text-start border-collapse min-w-[700px]">
+        <table className="w-full text-start border-collapse min-w-[700px] table-fixed">
+          <colgroup>
+            <col className="w-[40%]" />
+            <col className="w-[20%]" />
+            <col className="w-[18%]" />
+            <col className="w-[22%]" />
+          </colgroup>
           <thead>
             <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
-              <th className="whitespace-nowrap py-3 px-4 text-start rounded-s-lg">{t('columns.restaurantBranch')}</th>
-              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.revenue')}</th>
-              <th className="whitespace-nowrap py-3 px-4 text-start">{t('columns.orders')}</th>
-              <th className="whitespace-nowrap py-3 px-4 rounded-e-lg">{t('columns.planTier')}</th>
+              <th className="py-3.5 px-4 text-start rounded-s-lg">{t('columns.restaurantBranch')}</th>
+              <th className="py-3.5 px-4 text-center">{t('columns.revenue')}</th>
+              <th className="py-3.5 px-4 text-center">{t('columns.orders')}</th>
+              <th className="py-3.5 px-4 text-center rounded-e-lg">{t('columns.planTier')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
             {restaurants.map((r) => {
               const rev = Math.round(r.totalRevenue * multiplier);
               const ord = Math.round(r.totalOrders * multiplier);
+              const rPill = planPill(locField(locale, r, 'planName') || r.planName, locale);
               return (
                 <React.Fragment key={r.id}>
-                  <tr>
-                    <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#2D2F33] text-[15px]">{locField(locale, r, 'name')}</td>
-                    <td className="whitespace-nowrap py-4 px-4 font-semibold text-[#026F4F]" dir="ltr"><bdi>EGP {rev.toLocaleString()}</bdi></td>
-                    <td className="whitespace-nowrap py-4 px-4 text-[#2D2F33]">{ord.toLocaleString()}</td>
-                    <td className="whitespace-nowrap py-4 px-4">
-                      <span className={`inline-block text-xs font-medium px-3.5 py-1.5 rounded-full ${planPill(locField(locale, r, 'planName') || r.planName, locale).classes}`}>
-                        {planPill(locField(locale, r, 'planName') || r.planName, locale).label}
-                      </span>
+                  <tr className="hover:bg-gray-50/60 transition-colors">
+                    <td className="py-4 px-4 font-semibold text-[#2D2F33] text-[15px] truncate">{locField(locale, r, 'name')}</td>
+                    <td className="py-4 px-4 text-center font-semibold text-[#026F4F]" dir="ltr"><bdi>EGP {rev.toLocaleString()}</bdi></td>
+                    <td className="py-4 px-4 text-center text-[#2D2F33] font-medium">{ord.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex justify-center items-center">
+                        <span className={`inline-block text-xs font-semibold px-3.5 py-1.5 rounded-full ${rPill.classes}`}>
+                          {rPill.label}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                   {r.branches.map((b) => {
                     const bRev = Math.round((b.revenueToday || 0) * multiplier);
                     const bOrd = Math.round(b.ordersToday * multiplier);
+                    const bPill = planPill(locField(locale, b, 'planName') || r.planName, locale);
                     return (
-                      <tr key={b.id} className="bg-[#F8F9FA]/60">
-                        <td className="py-3 px-4 ps-10 text-[#686868]">{locField(locale, b, 'name')}</td>
-                        <td className="py-3 px-4 text-[#686868]" dir="ltr"><bdi>EGP {bRev.toLocaleString()}</bdi></td>
-                        <td className="py-3 px-4 text-[#686868]">{bOrd.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-[#686868]">
-                          {planPill(locField(locale, b, 'planName') || r.planName, locale).label}
+                      <tr key={b.id} className="bg-[#F8F9FA]/60 hover:bg-[#F8F9FA] transition-colors">
+                        <td className="py-3.5 px-4 ps-10 text-[#686868] truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#989898] text-xs">↳</span>
+                            <span>{locField(locale, b, 'name')}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-center text-[#686868]" dir="ltr"><bdi>EGP {bRev.toLocaleString()}</bdi></td>
+                        <td className="py-3.5 px-4 text-center text-[#686868]">{bOrd.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="flex justify-center items-center">
+                            <span className={`inline-block text-xs font-semibold px-3.5 py-1.5 rounded-full ${bPill.classes}`}>
+                              {bPill.label}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -567,25 +592,33 @@ export default function RevenueReportsPage() {
               </button>
             </div>
             <div className="overflow-x-auto mt-4">
-              <table className="w-full text-start border-collapse min-w-[560px]">
+              <table className="w-full text-start border-collapse min-w-[560px] table-fixed">
+                <colgroup>
+                  <col className="w-[40%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[22%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
                     <th className="py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
-                    <th className="py-3 px-4 text-start">{t('columns.revenue')}</th>
-                    <th className="py-3 px-4 text-start">{t('columns.orders')}</th>
-                    <th className="py-3 px-4 text-start rounded-e-lg">{t('columns.planTier')}</th>
+                    <th className="py-3 px-4 text-center">{t('columns.revenue')}</th>
+                    <th className="py-3 px-4 text-center">{t('columns.orders')}</th>
+                    <th className="py-3 px-4 text-center rounded-e-lg">{t('columns.planTier')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {DETAILED_REPORT.map((row, i) => (
-                    <tr key={i}>
-                      <td className="py-4 px-4 font-semibold text-[#2D2F33]">{isAr ? row.restaurant_ar : row.restaurant}</td>
-                      <td className="py-4 px-4 text-[#2D2F33]"><bdi dir="ltr">{row.revenue}</bdi></td>
-                      <td className="py-4 px-4 text-[#2D2F33]">{row.orders}</td>
-                      <td className="py-4 px-4">
-                        <span className={`text-[11px] font-bold px-3 py-1.5 rounded-md ${tierPill(row.tier)}`}>
-                          {isAr ? row.tier_ar : row.tier}
-                        </span>
+                    <tr key={i} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="py-4 px-4 font-semibold text-[#2D2F33] truncate">{isAr ? row.restaurant_ar : row.restaurant}</td>
+                      <td className="py-4 px-4 text-center text-[#2D2F33] font-medium" dir="ltr"><bdi>{row.revenue}</bdi></td>
+                      <td className="py-4 px-4 text-center text-[#2D2F33]">{row.orders}</td>
+                      <td className="py-4 px-4 text-center">
+                        <div className="flex justify-center items-center">
+                          <span className={`inline-block text-[11px] font-bold px-3 py-1.5 rounded-full ${tierPill(row.tier)}`}>
+                            {isAr ? row.tier_ar : row.tier}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -653,20 +686,25 @@ export default function RevenueReportsPage() {
           {/* Detailed expenses: itemized line items */}
           <h4 className="mt-7 font-semibold text-[#2D2F33] text-lg">{t('detailedExpenses')}</h4>
           <div className="overflow-x-auto mt-3">
-            <table className="w-full text-start border-collapse min-w-[540px]">
+            <table className="w-full text-start border-collapse min-w-[540px] table-fixed">
+              <colgroup>
+                <col className="w-[50%]" />
+                <col className="w-[25%]" />
+                <col className="w-[25%]" />
+              </colgroup>
               <thead>
                 <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
                   <th className="py-3 px-4 text-start rounded-s-lg">{t('expenseColumns.category')}</th>
-                  <th className="py-3 px-4 text-start">{t('expenseColumns.amount')}</th>
-                  <th className="py-3 px-4 text-start rounded-e-lg">{t('expenseColumns.share')}</th>
+                  <th className="py-3 px-4 text-center">{t('expenseColumns.amount')}</th>
+                  <th className="py-3 px-4 text-center rounded-e-lg">{t('expenseColumns.share')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
                 {DETAILED_EXPENSES.map((row, i) => (
-                  <tr key={i}>
-                    <td className="py-4 px-4 font-medium text-[#2D2F33]">{locField(locale, row, 'category')}</td>
-                    <td className="py-4 px-4 text-[#2D2F33]" dir="ltr"><bdi>{row.amount}</bdi></td>
-                    <td className="py-4 px-4 text-[#686868]">{row.share}</td>
+                  <tr key={i} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="py-4 px-4 font-medium text-[#2D2F33] truncate">{locField(locale, row, 'category')}</td>
+                    <td className="py-4 px-4 text-center text-[#2D2F33] font-medium" dir="ltr"><bdi>{row.amount}</bdi></td>
+                    <td className="py-4 px-4 text-center text-[#686868]">{row.share}</td>
                   </tr>
                 ))}
               </tbody>
@@ -684,29 +722,35 @@ export default function RevenueReportsPage() {
           </div>
           <p className="mt-1 text-sm text-[#989898]">Showing the 6 most overdue accounts.</p>
           <div className="overflow-x-auto mt-4">
-            <table className="w-full text-start border-collapse min-w-[720px]">
+            <table className="w-full text-start border-collapse min-w-[720px] table-fixed">
+              <colgroup>
+                <col className="w-[26%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[16%]" />
+                <col className="w-[22%]" />
+              </colgroup>
               <thead>
                 <tr className="bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
                   <th className="py-3 px-4 text-start rounded-s-lg">{t('columns.restaurant')}</th>
-                  <th className="py-3 px-4 text-start">{t('columns.planTier')}</th>
-                  <th className="py-3 px-4 text-start">{t('columns.revenue')}</th>
-                  <th className="py-3 px-4 text-start">Overdue</th>
+                  <th className="py-3 px-4 text-center">{t('columns.planTier')}</th>
+                  <th className="py-3 px-4 text-center">{t('columns.revenue')}</th>
+                  <th className="py-3 px-4 text-center">Overdue</th>
                   <th className="py-3 px-4 text-start rounded-e-lg">Contact</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
                 {DELAYED_ROWS.map((row, i) => (
-                  <tr key={i}>
-<td className="py-4 px-4 whitespace-nowrap font-semibold text-[#2D2F33]">{row.restaurant}</td>
-                    <td className="py-4 px-4 text-[#686868]">{row.plan}</td>
-                    <td className="py-4 px-4 font-semibold text-[#E52B2B]"><bdi dir="ltr">{row.amount}</bdi></td>
-                    <td className="py-4 px-4">
-                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
+                  <tr key={i} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="py-4 px-4 whitespace-nowrap font-semibold text-[#2D2F33] truncate">{row.restaurant}</td>
+                    <td className="py-4 px-4 text-center text-[#686868]">{row.plan}</td>
+                    <td className="py-4 px-4 text-center font-semibold text-[#E52B2B]" dir="ltr"><bdi>{row.amount}</bdi></td>
+                    <td className="py-4 px-4 text-center">
+                      <span className="inline-block rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{row.overdue}</span>
                     </td>
                     <td className="py-4 px-4 text-[#686868]">
                       <span className="flex flex-col gap-0.5">
                         <bdi dir="ltr">{row.contact}</bdi>
-                        {/* Bug-3: phone number next to the email. */}
                         {row.phone && <bdi dir="ltr" className="text-xs">{row.phone}</bdi>}
                       </span>
                     </td>
@@ -777,11 +821,11 @@ export default function RevenueReportsPage() {
                 <div className="grid grid-cols-[minmax(120px,1fr)_minmax(180px,1.4fr)_minmax(110px,0.9fr)_minmax(90px,0.7fr)_minmax(110px,0.9fr)_minmax(90px,0.7fr)_64px] gap-4 px-6 py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide">
                   <span>{t('invoiceId')}</span>
                   <span>{t('columns.restaurant')}</span>
-                  <span>{t('plan')}</span>
-                  <span>{t('amount')}</span>
-                  <span>{t('columns.date')}</span>
-                  <span>{t('status')}</span>
-                  <span>{t('actions')}</span>
+                  <span className="text-center">{t('plan')}</span>
+                  <span className="text-center">{t('amount')}</span>
+                  <span className="text-center">{t('columns.date')}</span>
+                  <span className="text-center">{t('status')}</span>
+                  <span className="text-end">{t('actions')}</span>
                 </div>
                 {ledger.map((tx) => {
                   const pill = planPill(locField(locale, tx, 'planName') || tx.planName, locale);
@@ -798,25 +842,27 @@ export default function RevenueReportsPage() {
                           <span className="block text-xs text-[#989898]">{t('branchesCountLabel', { count: branches })}</span>
                         )}
                       </span>
-                      <span>
-                        <span className={`text-xs font-medium px-3.5 py-1.5 rounded-full ${pill.classes}`}>
+                      <span className="flex justify-center items-center">
+                        <span className={`text-xs font-semibold px-3.5 py-1.5 rounded-full ${pill.classes}`}>
                           {pill.label}
                         </span>
                       </span>
-                      <span className="text-sm font-semibold text-[#2D2F33]" dir="ltr">EGP {tx.amount.toFixed(2)}</span>
-                      <span className="text-sm text-[#2D2F33]">{locField(locale, tx, 'date')}</span>
-                      <span>
+                      <span className="text-sm font-semibold text-[#2D2F33] text-center" dir="ltr">EGP {tx.amount.toFixed(2)}</span>
+                      <span className="text-sm text-[#2D2F33] text-center">{locField(locale, tx, 'date')}</span>
+                      <span className="flex justify-center items-center">
                         <span className={`text-sm font-medium px-4 py-1.5 rounded-full ${statusPill(tx.status)}`}>
                           {tx.status === 'Paid' ? ts('paid') : tx.status === 'Pending' ? ts('pending') : ts('failed')}
                         </span>
                       </span>
-                      <button
-                        onClick={() => downloadCSV(`invoice_${tx.invoiceId}.csv`, [tx])}
-                        aria-label={`${t('downloadInvoice', { id: tx.invoiceId })}`}
-                        className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
-                      >
-                        <Download size={18} />
-                      </button>
+                      <span className="flex justify-end">
+                        <button
+                          onClick={() => downloadCSV(`invoice_${tx.invoiceId}.csv`, [tx])}
+                          aria-label={`${t('downloadInvoice', { id: tx.invoiceId })}`}
+                          className="w-11 h-11 rounded-lg bg-[#F2F2F2] hover:bg-gray-200 flex items-center justify-center text-[#686868] hover:text-[#2D2F33] transition-colors"
+                        >
+                          <Download size={18} />
+                        </button>
+                      </span>
                     </div>
                   );
                 })}

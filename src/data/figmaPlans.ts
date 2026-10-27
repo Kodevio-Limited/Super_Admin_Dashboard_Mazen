@@ -149,7 +149,9 @@ export function planPill(planName: string, locale = 'en'): {
     return { label: ar ? 'الاحترافية' : 'Pro', classes: 'bg-[#D6EBFF] text-[#1573D1]' };
   if (n.includes('basic') || n.includes('trial') || n.includes('starter') || n.includes('الأساس') || n.includes('التجريب') || n.includes('المبتدئ'))
     return { label: ar ? 'الأساسية' : 'Basic', classes: 'bg-[#FFF3C0] text-[#9A7B00]' };
-  return { label: ar ? 'مخصصة' : 'Custom', classes: 'bg-[#FBD9F9] text-[#B93DBE]' };
+  if (n.includes('enterprise') || n.includes('المؤسس'))
+    return { label: ar ? 'المؤسسية' : 'Enterprise', classes: 'bg-[#E0E7FF] text-[#4338CA]' };
+  return { label: ar ? 'خطة خاصة' : 'Private Plan', classes: 'bg-[#FBD9F9] text-[#B93DBE]' };
 }
 
 // Short tier description for the Subscription dark card. Only the Pro copy

@@ -16,7 +16,7 @@ import { useQueryModal, readQueryParam, writeQueryParam } from '@/lib/use-query-
 
 // Source of truth: Figma frame "Restaurants" (1856:1628) — grouped
 // expandable restaurant/branch table. No search or filters in the frame.
-const COLS = 'grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_minmax(110px,1fr)_minmax(100px,1fr)_minmax(110px,1fr)_minmax(110px,1fr)_64px]';
+const COLS = 'grid-cols-[minmax(260px,1fr)_160px_130px_120px_130px_130px_64px]';
 
 function Dash() {
   return <span className="text-[#989898]">—</span>;
@@ -357,10 +357,10 @@ export default function RestaurantsPage() {
         )}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <div className="min-w-[980px]">
+            <div className="min-w-[1040px]">
               {/* Header: Centered columns under PLANS, BRANCHES, STATUS, DATE OF SUB, SUB UNTIL */}
               <div className={`grid ${COLS} gap-4 px-6 py-4 bg-[#F8F9FA] text-xs font-semibold text-[#686868] uppercase tracking-wide`}>
-                <span>{t('columns.restaurantsOwners')}</span>
+                <span className="truncate">{t('columns.restaurantsOwners')}</span>
                 <span className="text-center">{t('columns.plans')}</span>
                 <span className="text-center">{t('columns.branches')}</span>
                 <span className="text-center">{t('columns.status')}</span>
@@ -375,33 +375,33 @@ export default function RestaurantsPage() {
                   <div key={rest.id} className="border-t border-gray-100 first:border-t-0">
                     {/* Restaurant group row */}
                     <div className={`grid ${COLS} gap-4 px-6 py-5 items-center`}>
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
                         <button
                           onClick={() => toggle(rest.id)}
                           aria-label={isOpen ? t('collapseBranches') : t('expandBranches')}
-                          className="mt-1 text-[#2D2F33] hover:text-[#026F4F] transition-colors cursor-pointer"
+                          className="mt-1 text-[#2D2F33] hover:text-[#026F4F] transition-colors cursor-pointer shrink-0"
                         >
                           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>
-                        <div>
-                          <p className="font-semibold text-[#2D2F33] text-[17px]">{locField(locale, rest, 'name')}</p>
-                          <p className="text-sm text-[#989898] mt-0.5">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#2D2F33] text-[17px] truncate">{locField(locale, rest, 'name')}</p>
+                          <p className="text-sm text-[#989898] mt-0.5 truncate">
                             <bdi dir="ltr">{rest.ownerName}</bdi> <span className="ms-3"><bdi dir="ltr">{rest.ownerEmail}</bdi></span>
                           </p>
                           {/* Bug-1: owner's primary number under the email. */}
                           {rest.ownerPhone && (
-                            <p className="text-sm text-[#989898] mt-0.5"><bdi dir="ltr">{rest.ownerPhone}</bdi></p>
+                            <p className="text-sm text-[#989898] mt-0.5 truncate"><bdi dir="ltr">{rest.ownerPhone}</bdi></p>
                           )}
                         </div>
                       </div>
-                      <div className="flex justify-center items-center"><Dash /></div>
-                      <div className="flex items-center justify-center gap-1.5 text-sm text-[#686868]">
+                      <div className="w-full flex justify-center items-center"><Dash /></div>
+                      <div className="w-full flex items-center justify-center gap-1.5 text-sm text-[#686868]">
                         <Building2 size={16} />
                         {t('branchCountLabel', { count: rest.branches.length })}
                       </div>
-                      <div className="flex justify-center items-center"><Dash /></div>
-                      <div className="flex justify-center items-center"><Dash /></div>
-                      <div className="flex justify-center items-center"><Dash /></div>
+                      <div className="w-full flex justify-center items-center"><Dash /></div>
+                      <div className="w-full flex justify-center items-center"><Dash /></div>
+                      <div className="w-full flex justify-center items-center"><Dash /></div>
                       <span className="sticky end-0 bg-white flex justify-end">
                         <button
                           onClick={() => openFlow({ restaurantId: rest.id })}
@@ -421,7 +421,7 @@ export default function RestaurantsPage() {
                           return (
                             <div key={branch.id} className={`grid ${COLS} gap-4 px-6 py-4 items-center`}>
                               <div className="min-w-0 ps-6 sm:ps-8">
-                                <p className="font-semibold text-[#2D2F33] uppercase text-[15px]">
+                                <p className="font-semibold text-[#2D2F33] uppercase text-[15px] truncate">
                                   {locField(locale, branch, 'name')}
                                 </p>
                                 {/* Bug-5: branch email & phone right in the list. */}
@@ -429,22 +429,22 @@ export default function RestaurantsPage() {
                                   <p className="text-sm text-[#989898] mt-0.5 truncate"><bdi dir="ltr">{branch.managerEmail}</bdi></p>
                                 )}
                                 {branch.phone && (
-                                  <p className="text-sm text-[#989898] mt-0.5"><bdi dir="ltr">{branch.phone}</bdi></p>
+                                  <p className="text-sm text-[#989898] mt-0.5 truncate"><bdi dir="ltr">{branch.phone}</bdi></p>
                                 )}
                               </div>
-                              <div className="flex flex-col items-center justify-center text-center">
+                              <div className="w-full flex flex-col items-center justify-center text-center">
                                 <span className={`inline-block text-sm font-medium px-4 py-1.5 rounded-full ${pill.classes}`}>
                                   {pill.label}
                                 </span>
-                                <p className="text-[15px] font-bold text-[#2D2F33] mt-1.5">
+                                <p className="text-[15px] font-bold text-[#2D2F33] mt-1.5 w-full text-center whitespace-nowrap">
                                   EGP {(branch.monthlyFee || rest.planPrice).toLocaleString()}{' '}
                                   <span className="text-xs font-normal text-[#989898]">
-                                    {t('perMonthBilling', { billing: rest.planBilling.toLowerCase() })}
+                                    / {isAr ? (rest.planBilling === 'Yearly' ? 'سنة' : 'شهر') : (rest.planBilling === 'Yearly' ? 'year' : 'month')}
                                   </span>
                                 </p>
                               </div>
-                              <div className="flex justify-center items-center"><Dash /></div>
-                              <div className="flex justify-center items-center">
+                              <div className="w-full flex justify-center items-center"><Dash /></div>
+                              <div className="w-full flex justify-center items-center">
                                 <span
                                   className={`text-sm font-medium px-4 py-1.5 rounded-full ${
                                     rest.status === 'Active'
@@ -455,10 +455,10 @@ export default function RestaurantsPage() {
                                   {rest.status === 'Active' ? ts('active') : rest.status === 'Pending' ? ts('pending') : ts('suspended')}
                                 </span>
                               </div>
-                              <div className="flex justify-center items-center text-center">
+                              <div className="w-full flex justify-center items-center text-center">
                                 <span className="text-sm text-[#2D2F33]">{locField(locale, rest, 'joinedDate')}</span>
                               </div>
-                              <div className="flex flex-col items-center justify-center text-center gap-1">
+                              <div className="w-full flex flex-col items-center justify-center text-center gap-1">
                                 <span className="text-sm text-[#2D2F33]">{locField(locale, rest, 'planExpiry')}</span>
                                 {expiringOnly && (() => {
                                   const d = daysLeft(rest.planExpiry);

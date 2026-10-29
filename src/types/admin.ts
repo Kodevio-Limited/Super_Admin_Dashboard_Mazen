@@ -127,3 +127,56 @@ export interface RevenueMetric {
   platformFees: number;
   payouts: number;
 }
+
+// --- Growth & retention analytics (Revenue & Reports) ---------------------
+// Reason codes are translated via `sa.revenue.growth.churnDrawer.reasons.*`.
+
+export type ChurnReason =
+  | 'competitor'
+  | 'budget'
+  | 'closed'
+  | 'noEngagement'
+  | 'paymentFailures'
+  | 'consolidated'
+  | 'downgraded'
+  | 'merged';
+
+export interface ChurnedCustomer {
+  id: string;
+  restaurant: string;
+  restaurant_ar?: string;
+  ownerEmail: string;
+  plan: string;
+  churnedOn: string;
+  churnedOn_ar?: string;
+  tenureMonths: number;
+  /** Monthly recurring revenue lost when the account churned (EGP). */
+  mrrLost: number;
+  reason: ChurnReason;
+}
+
+export interface FreeTrial {
+  id: string;
+  restaurant: string;
+  restaurant_ar?: string;
+  plan: string;
+  ownerName: string;
+  ownerName_ar?: string;
+  ownerEmail: string;
+  startedOn: string;
+  startedOn_ar?: string;
+  /** Days remaining until the trial ends (0 = last day). */
+  daysLeft: number;
+  branches: number;
+  lastActive: string;
+  lastActive_ar?: string;
+}
+
+export type CustomerMovementPeriod = 'monthly' | 'quarterly' | 'semiAnnual' | 'annual';
+
+export interface CustomerMovementPoint {
+  label: string;
+  label_ar?: string;
+  newCustomers: number;
+  lostCustomers: number;
+}

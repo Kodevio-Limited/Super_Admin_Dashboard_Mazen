@@ -15,19 +15,37 @@ import {
   Plus,
   Download,
   X,
+  Repeat,
+  Target,
+  Megaphone,
+  Timer,
+  ArrowRightLeft,
+  Wallet,
+  Users,
+  UserMinus,
 } from 'lucide-react';
 import SelectableAreaChart from '@/components/SelectableAreaChart';
 import Topbar from '@/components/Topbar';
 import LeftPanel from '@/components/LeftPanel';
+import ChurnedCustomersDrawer from '@/components/drawers/ChurnedCustomersDrawer';
+import FreeTrialsDrawer from '@/components/drawers/FreeTrialsDrawer';
 import { Link } from '@/i18n/routing';
 import ExportLedgerModal from '@/components/modals/ExportLedgerModal';
 import LogEntryModal, { LedgerEntry } from '@/components/modals/LogEntryModal';
 import { mockLedger } from '@/data/mockData';
 import { getRestaurants } from '@/data/restaurantStore';
 import { planPill } from '@/data/figmaPlans';
+import {
+  GROWTH_DISPLAY as G,
+  TRIAL_FUNNEL,
+  TRIALS_ACTIVE,
+  TRIALS_AVG_DAYS_LEFT,
+  TRIALS_ENDING_SOON,
+  customerMovement,
+} from '@/data/revenueAnalytics';
 import { locField } from '@/lib/localize';
 import { useQueryModal } from '@/lib/use-query-modal';
-import { TransactionLedger } from '@/types/admin';
+import { CustomerMovementPeriod, TransactionLedger } from '@/types/admin';
 
 // Source of truth: Figma frame "Revenue & Reports" (1939:1060).
 // KPI figures, chart shapes, report rows, performers and snapshot values are
@@ -395,6 +413,522 @@ function downloadCSV(filename: string, rows: TransactionLedger[]) {
   document.body.removeChild(link);
 }
 
+// --- Growth & retention analytics -----------------------------------------
+// MRR/ARR, NRR, CAC, LTV:CAC, ROAS, churn (+ who churned), CAC payback,
+// trial→paid, ARPU, new vs. lost customers and active free trials.
+// TODO(api): GET /analytics/growth?window=30d|12m.
+
+const VIEW_PILL =
+  'inline-flex w-fit items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white';
+
+type MetricRow = { label: string; value: string; tone?: 'pos' | 'neg' };
+
+function Sparkline({ values }: { values: number[] }) {
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const points = values
+    .map((v, i) => `${(i / (values.length - 1)) * 100},${26 - ((v - min) / span) * 20}`)
+    .join(' ');
+  return (
+    <svg
+      viewBox="0 0 100 30"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      className="mt-1 h-10 w-full"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="#026F4F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  formula,
+  value,
+  valueClass = 'text-[#2D2F33]',
+  chip,
+  chipClass = 'bg-[#F2F2F2] text-[#686868]',
+  rows,
+  footer,
+}: {
+  icon: React.ElementType;
+  label: string;
+  formula: string;
+  value: string;
+  valueClass?: string;
+  chip?: string;
+  chipClass?: string;
+  rows: MetricRow[];
+  footer?: React.ReactNode;
+}) {
+  return (
+    <article className="flex h-full flex-col gap-3 rounded-xl bg-white p-[22px]">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="text-[15px] font-semibold leading-snug text-[#2D2F33]">{label}</h4>
+          <p className="mt-1 text-xs leading-snug text-[#989898]">{formula}</p>
+        </div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F2F2F2] text-[#2D2F33]">
+          <Icon size={18} strokeWidth={1.8} />
+        </span>
+      </header>
+
+      <div>
+        <p className={`text-[30px] font-semibold leading-[1.15] ${valueClass}`}>
+          <bdi dir="ltr">{value}</bdi>
+        </p>
+        {chip ? (
+          <span className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${chipClass}`}>
+            {chip}
+          </span>
+        ) : null}
+      </div>
+
+      <dl className="space-y-2 border-t border-gray-100 pt-3 text-sm">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-3">
+            <dt className="text-[#989898]">{row.label}</dt>
+            <dd
+              className={`font-medium ${
+                row.tone === 'pos' ? 'text-[#158F15]' : row.tone === 'neg' ? 'text-[#E52B2B]' : 'text-[#2D2F33]'
+              }`}
+            >
+              <bdi dir="ltr">{row.value}</bdi>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {footer ? <div className="mt-auto">{footer}</div> : null}
+    </article>
+  );
+}
+
+function GrowthRetentionSection({
+  onViewChurned,
+  onViewTrials,
+}: {
+  onViewChurned: () => void;
+  onViewTrials: () => void;
+}) {
+  const t = useTranslations('sa.revenue');
+  const locale = useLocale();
+  const isAr = locale === 'ar';
+  const [period, setPeriod] = useState<CustomerMovementPeriod>('monthly');
+
+  const points = customerMovement(period);
+  const totals = points.reduce(
+    (acc, p) => ({
+      newCustomers: acc.newCustomers + p.newCustomers,
+      lostCustomers: acc.lostCustomers + p.lostCustomers,
+    }),
+    { newCustomers: 0, lostCustomers: 0 },
+  );
+  const netTotal = totals.newCustomers - totals.lostCustomers;
+  const maxBar = Math.max(1, ...points.map((p) => Math.max(p.newCustomers, p.lostCustomers)));
+
+  const periods: { value: CustomerMovementPeriod; key: string }[] = [
+    { value: 'monthly', key: 'growth.movement.monthly' },
+    { value: 'quarterly', key: 'growth.movement.quarterly' },
+    { value: 'semiAnnual', key: 'growth.movement.semiAnnual' },
+    { value: 'annual', key: 'growth.movement.annual' },
+  ];
+
+  const funnelShare = (n: number) => `${(n / TRIAL_FUNNEL.started) * 100}%`;
+
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-2xl font-semibold text-[#2D2F33]">{t('growth.title')}</h3>
+          <p className="mt-1 text-sm text-[#989898]">{t('growth.subtitle')}</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-[#686868]">
+          {t('growth.window30')}
+        </span>
+      </div>
+
+      {/* Recurring revenue, retention, monetisation, churn */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          icon={Repeat}
+          label={t('growth.metrics.mrrArr')}
+          formula={t('growth.formulas.mrrArr')}
+          value={G.mrr}
+          valueClass="text-[#026F4F]"
+          chip={t('growth.momChip', { value: G.mrrMom })}
+          chipClass="bg-[#D9F5D9] text-[#158F15]"
+          rows={[{ label: t('growth.rows.arr'), value: G.arr }]}
+          footer={
+            <div>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#989898]">
+                {t('growth.trend')}
+              </p>
+              <div dir="ltr">
+                <Sparkline values={G.mrrTrend} />
+              </div>
+            </div>
+          }
+        />
+
+        <MetricCard
+          icon={TrendingUp}
+          label={t('growth.metrics.nrr')}
+          formula={t('growth.formulas.nrr')}
+          value={G.nrr}
+          valueClass="text-[#026F4F]"
+          chip={t('growth.grrChip', { value: G.grr })}
+          rows={[
+            { label: t('growth.rows.startingMrr'), value: G.mrrStart },
+            { label: t('growth.rows.expansion'), value: G.expansion, tone: 'pos' },
+            { label: t('growth.rows.contraction'), value: G.contraction, tone: 'neg' },
+            { label: t('growth.rows.churnedMrr'), value: G.mrrChurned, tone: 'neg' },
+            { label: t('growth.rows.endingMrr'), value: G.mrrEnding },
+          ]}
+        />
+
+        <MetricCard
+          icon={Wallet}
+          label={t('growth.metrics.arpu')}
+          formula={t('growth.formulas.arpu')}
+          value={G.arpu}
+          rows={[
+            { label: t('growth.rows.paidAccounts'), value: G.paidAccounts },
+            { label: t('growth.rows.contribution'), value: G.contribution },
+            { label: t('growth.rows.grossMargin'), value: G.grossMargin },
+          ]}
+        />
+
+        <MetricCard
+          icon={UserMinus}
+          label={t('growth.metrics.churn')}
+          formula={t('growth.formulas.churn')}
+          value={G.churnRate}
+          valueClass="text-[#E52B2B]"
+          chip={t('growth.accountCount', { count: Number(G.churnAccounts) })}
+          chipClass="bg-red-100 text-red-700"
+          rows={[
+            { label: t('growth.rows.revenueChurn'), value: G.revenueChurn, tone: 'neg' },
+            { label: t('growth.rows.lostMrr'), value: G.churnedMrr },
+            { label: t('growth.rows.window'), value: t('growth.window12m') },
+          ]}
+          footer={
+            <div className="flex justify-end">
+              <button type="button" onClick={onViewChurned} className={VIEW_PILL}>
+                {t('growth.churnView')}
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          }
+        />
+      </div>
+
+      {/* Acquisition efficiency */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          icon={Target}
+          label={t('growth.metrics.cac')}
+          formula={t('growth.formulas.cac')}
+          value={G.cac}
+          chip={t('growth.window30')}
+          rows={[
+            { label: t('growth.rows.smSpend'), value: G.smSpend },
+            { label: t('growth.rows.newCustomers'), value: G.newCustomers },
+          ]}
+        />
+
+        <MetricCard
+          icon={ArrowRightLeft}
+          label={t('growth.metrics.ltvCac')}
+          formula={t('growth.formulas.ltvCac')}
+          value={G.ltvCac}
+          valueClass="text-[#026F4F]"
+          chip={t('growth.rows.healthy')}
+          chipClass="bg-[#D9F5D9] text-[#158F15]"
+          rows={[
+            { label: t('growth.rows.ltv'), value: G.ltv },
+            { label: t('growth.rows.cacShort'), value: G.cac },
+            { label: t('growth.rows.lifetime'), value: t('growth.monthsValue', { value: G.lifetimeMonths }) },
+          ]}
+        />
+
+        <MetricCard
+          icon={Megaphone}
+          label={t('growth.metrics.roas')}
+          formula={t('growth.formulas.roas')}
+          value={G.roas}
+          chip={t('growth.window30')}
+          rows={[
+            { label: t('growth.rows.adSpend'), value: G.adSpend },
+            { label: t('growth.rows.attributedRevenue'), value: G.attributedRevenue },
+          ]}
+        />
+
+        <MetricCard
+          icon={Timer}
+          label={t('growth.metrics.payback')}
+          formula={t('growth.formulas.payback')}
+          value={t('growth.monthsValue', { value: G.payback })}
+          valueClass="text-[#026F4F]"
+          chip={t('growth.rows.withinTarget')}
+          chipClass="bg-[#D9F5D9] text-[#158F15]"
+          rows={[
+            { label: t('growth.rows.monthlyProfit'), value: G.contribution },
+            { label: t('growth.rows.cacShort'), value: G.cac },
+            { label: t('growth.rows.target'), value: t('growth.monthsValue', { value: '12' }) },
+          ]}
+        />
+      </div>
+
+      {/* Trial conversion + who is on a free trial right now */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <article className="flex h-full flex-col gap-3 rounded-xl bg-white p-[22px]">
+          <header className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h4 className="text-[15px] font-semibold leading-snug text-[#2D2F33]">
+                {t('growth.metrics.trialConversion')}
+              </h4>
+              <p className="mt-1 text-xs leading-snug text-[#989898]">{t('growth.formulas.trialConversion')}</p>
+            </div>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F2F2F2] text-[#2D2F33]">
+              <Users size={18} strokeWidth={1.8} />
+            </span>
+          </header>
+
+          <div>
+            <p className="text-[30px] font-semibold leading-[1.15] text-[#026F4F]">
+              <bdi dir="ltr">{G.trialConversion}</bdi>
+            </p>
+            <span className="mt-2 inline-flex items-center rounded-full bg-[#F2F2F2] px-2.5 py-1 text-xs font-semibold text-[#686868]">
+              {t('growth.window30')}
+            </span>
+          </div>
+
+          <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 text-sm">
+            {[
+              { label: t('growth.rows.trialStarted'), value: G.trialsStarted },
+              { label: t('growth.rows.trialConverted'), value: G.trialsConverted },
+              { label: t('growth.rows.trialActive'), value: G.trialsActive },
+              { label: t('growth.rows.trialExpired'), value: G.trialsExpired },
+            ].map((row) => (
+              <div key={row.label} className="rounded-lg bg-[#F8F9FA] px-3 py-2.5">
+                <dt className="text-xs text-[#989898]">{row.label}</dt>
+                <dd className="mt-0.5 text-lg font-semibold text-[#2D2F33]">
+                  <bdi dir="ltr">{row.value}</bdi>
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-4">
+            <div className="flex h-2 overflow-hidden rounded-full bg-[#F2F2F2]">
+              <span className="h-full bg-[#026F4F]" style={{ width: funnelShare(TRIAL_FUNNEL.converted) }} />
+              <span className="h-full bg-[#F3B24A]" style={{ width: funnelShare(TRIAL_FUNNEL.active) }} />
+              <span className="h-full bg-[#D9D9D9]" style={{ width: funnelShare(TRIAL_FUNNEL.expired) }} />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#989898]">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#026F4F]" />
+                {t('growth.rows.trialConverted')}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#F3B24A]" />
+                {t('growth.rows.trialActive')}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#D9D9D9]" />
+                {t('growth.rows.trialExpired')}
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <article className="h-full rounded-xl bg-white p-[22px] xl:col-span-2">
+          <header className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h4 className="text-2xl font-semibold text-[#2D2F33]">{t('growth.trials.title')}</h4>
+              <p className="mt-1 text-sm text-[#989898]">{t('growth.trials.subtitle')}</p>
+            </div>
+            <button type="button" onClick={onViewTrials} className={VIEW_PILL}>
+              {t('growth.trials.view')}
+              <span aria-hidden="true">→</span>
+            </button>
+          </header>
+
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+              <p className="text-sm text-[#686868]">{t('growth.trials.active')}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#026F4F]" dir="ltr">
+                <bdi>{TRIALS_ACTIVE}</bdi>
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+              <p className="text-sm text-[#686868]">{t('growth.trials.endingSoon')}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#E52B2B]" dir="ltr">
+                <bdi>{TRIALS_ENDING_SOON.length}</bdi>
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+              <p className="text-sm text-[#686868]">{t('growth.trials.avgDaysLeft')}</p>
+              <p className="mt-1 text-2xl font-semibold text-[#2D2F33]" dir="ltr">
+                <bdi>{TRIALS_AVG_DAYS_LEFT.toFixed(1)}</bdi>
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-[#989898]">
+            {t('growth.trials.endingSoonTitle')}
+          </p>
+          <ul className="mt-1 divide-y divide-gray-100">
+            {TRIALS_ENDING_SOON.map((trial) => (
+              <li key={trial.id} className="flex items-center justify-between gap-3 py-3">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-[#2D2F33]">
+                    {isAr ? (trial.restaurant_ar ?? trial.restaurant) : trial.restaurant}
+                  </span>
+                  <span className="block text-xs text-[#989898]">
+                    {planPill(trial.plan, locale).label} •{' '}
+                    {t('growth.trials.branchesCount', { count: trial.branches })}
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                  {trial.daysLeft === 0
+                    ? t('growth.trials.lastDay')
+                    : t('growth.trials.daysLeft', { count: trial.daysLeft })}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-[#989898]">
+            {t('growth.trials.more', { count: TRIALS_ACTIVE - TRIALS_ENDING_SOON.length })}
+          </p>
+        </article>
+      </div>
+
+      {/* New vs. lost customers, aggregated per selected period */}
+      <article className="rounded-xl bg-white p-[22px]">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h4 className="text-2xl font-semibold text-[#2D2F33]">{t('growth.movement.title')}</h4>
+            <p className="mt-1 text-sm text-[#989898]">{t('growth.movement.subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-lg bg-[#F2F2F2] p-1">
+            {periods.map((option) => {
+              const active = period === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setPeriod(option.value)}
+                  aria-pressed={active}
+                  className={`rounded-md px-4 py-2 text-sm transition-all ${
+                    active ? 'bg-white font-semibold text-[#2D2F33] shadow' : 'text-[#989898] hover:text-[#2D2F33]'
+                  }`}
+                >
+                  {t(option.key as any)}
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+            <p className="text-sm text-[#686868]">{t('growth.movement.new')}</p>
+            <p className="mt-1 text-2xl font-semibold text-[#026F4F]" dir="ltr">
+              <bdi>{totals.newCustomers}</bdi>
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+            <p className="text-sm text-[#686868]">{t('growth.movement.lost')}</p>
+            <p className="mt-1 text-2xl font-semibold text-[#E52B2B]" dir="ltr">
+              <bdi>{totals.lostCustomers}</bdi>
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-[#F8F9FA] px-5 py-4">
+            <p className="text-sm text-[#686868]">{t('growth.movement.net')}</p>
+            <p
+              className={`mt-1 text-2xl font-semibold ${netTotal >= 0 ? 'text-[#158F15]' : 'text-[#E52B2B]'}`}
+            >
+              <bdi dir="ltr">{netTotal >= 0 ? `+${netTotal}` : `−${Math.abs(netTotal)}`}</bdi>
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          {points.map((p) => {
+            const net = p.newCustomers - p.lostCustomers;
+            return (
+              <div
+                key={p.label}
+                className="grid grid-cols-[minmax(76px,120px)_1fr_64px] items-center gap-4 border-t border-gray-100 py-3 first:border-t-0"
+              >
+                <span className="text-sm font-medium text-[#2D2F33]">
+                  {isAr ? (p.label_ar ?? p.label) : p.label}
+                </span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F2F2F2]">
+                      <span
+                        className="block h-full rounded-full bg-[#026F4F]"
+                        style={{ width: `${Math.max(2, (p.newCustomers / maxBar) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-7 text-end text-xs font-semibold text-[#026F4F]" dir="ltr">
+                      <bdi>{p.newCustomers}</bdi>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F2F2F2]">
+                      <span
+                        className="block h-full rounded-full bg-[#E52B2B]/70"
+                        style={{ width: `${Math.max(2, (p.lostCustomers / maxBar) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-7 text-end text-xs font-semibold text-[#E52B2B]" dir="ltr">
+                      <bdi>{p.lostCustomers}</bdi>
+                    </span>
+                  </div>
+                </div>
+                <span
+                  className={`justify-self-end rounded-full px-3 py-1 text-xs font-semibold ${
+                    net >= 0 ? 'bg-[#D9F5D9] text-[#158F15]' : 'bg-red-100 text-red-700'
+                  }`}
+                  dir="ltr"
+                >
+                  <bdi>{net >= 0 ? `+${net}` : `−${Math.abs(net)}`}</bdi>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-[#989898]">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-4 rounded-full bg-[#026F4F]" />
+            {t('growth.movement.new')}
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-4 rounded-full bg-[#E52B2B]/70" />
+            {t('growth.movement.lost')}
+          </span>
+          <span className="ms-auto">{t('growth.movement.windowNote')}</span>
+        </div>
+      </article>
+    </section>
+  );
+}
+
 export default function RevenueReportsPage() {
   const t = useTranslations('sa.revenue');
   const tc = useTranslations('common.actions');
@@ -408,6 +942,9 @@ export default function RevenueReportsPage() {
   const [delayedOpen, setDelayedOpen] = useQueryModal('delayed-payments');
   // Bug-9: full report across every restaurant + branch (?modal=detailed-report-all).
   const [fullReportOpen, setFullReportOpen] = useQueryModal('detailed-report-all');
+  // Growth suite drill-downs: ?modal=churned-customers, ?modal=free-trials.
+  const [churnedOpen, setChurnedOpen] = useQueryModal('churned-customers');
+  const [trialsOpen, setTrialsOpen] = useQueryModal('free-trials');
   // Bar select/deselect (Owner Reports & Analytics pattern).
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
@@ -491,6 +1028,12 @@ export default function RevenueReportsPage() {
             );
           })}
         </div>
+
+        {/* Growth & retention suite — MRR/ARR → trials, customer movement. */}
+        <GrowthRetentionSection
+          onViewChurned={() => setChurnedOpen(true)}
+          onViewTrials={() => setTrialsOpen(true)}
+        />
 
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -888,6 +1431,10 @@ export default function RevenueReportsPage() {
       {fullReportOpen && (
         <DetailedReportAllModal onClose={() => setFullReportOpen(false)} />
       )}
+
+      {churnedOpen && <ChurnedCustomersDrawer onClose={() => setChurnedOpen(false)} />}
+
+      {trialsOpen && <FreeTrialsDrawer onClose={() => setTrialsOpen(false)} />}
     </div>
   );
 }

@@ -363,8 +363,10 @@ export default function CreateRestaurantModal({
                       aria-label={t('countryCode')}
                       className="h-14 px-3 bg-[#F2F2F2] rounded-full text-[15px] text-[#2D2F33] focus:outline-none focus:ring-2 focus:ring-[#026F4F]/30 transition-all shrink-0"
                     >
+                      {/* <option> takes text only — a <bdi> child is invalid HTML
+                          and made React's hydration throw. */}
                       {COUNTRY_CODES.map((c) => (
-                        <option key={c.code} value={c.code}><bdi dir="ltr">{c.label}</bdi></option>
+                        <option key={c.code} value={c.code}>{c.label}</option>
                       ))}
                     </select>
                     <input

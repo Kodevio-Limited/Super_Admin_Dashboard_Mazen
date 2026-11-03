@@ -413,6 +413,16 @@ function downloadCSV(filename: string, rows: TransactionLedger[]) {
   document.body.removeChild(link);
 }
 
+// Bug-24: report download periods (semi-annual = half-year).
+type ReportPeriod = 'week' | 'month' | 'quarter' | 'semiAnnual' | 'annual';
+const REPORT_PERIODS: { period: ReportPeriod }[] = [
+  { period: 'week' },
+  { period: 'month' },
+  { period: 'quarter' },
+  { period: 'semiAnnual' },
+  { period: 'annual' },
+];
+
 // --- Growth & retention analytics -----------------------------------------
 // MRR/ARR, NRR, CAC, LTV:CAC, ROAS, churn (+ who churned), CAC payback,
 // trial→paid, ARPU, new vs. lost customers and active free trials.
@@ -947,6 +957,20 @@ export default function RevenueReportsPage() {
   const [trialsOpen, setTrialsOpen] = useQueryModal('free-trials');
   // Bar select/deselect (Owner Reports & Analytics pattern).
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  // Bug-24: top-right report download with period chooser.
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+
+  const exportReport = (period: ReportPeriod) => {
+    // Window back from "today" per period; entries whose date can't be parsed
+    // always ship, so the export stays complete even with odd mock dates.
+    const days: Record<ReportPeriod, number> = { week: 7, month: 30, quarter: 91, semiAnnual: 183, annual: 365 };
+    const since = Date.now() - days[period] * 86400000;
+    const rows = ledger.filter((tx) => {
+      const parsed = Date.parse(tx.date);
+      return Number.isNaN(parsed) || parsed >= since;
+    });
+    downloadCSV(`revenue_report_${period}.csv`, rows.length > 0 ? rows : ledger);
+  };
 
   const branchCount = (restaurantName: string) =>
     getRestaurants().find((r) => r.name === restaurantName)?.branches.length;
@@ -991,10 +1015,45 @@ export default function RevenueReportsPage() {
             <h2 className="text-3xl font-bold text-[#2D2F33]">{t('title')}</h2>
             <p className="text-[#989898] mt-1">{t('subtitle')}</p>
           </div>
-          <span className="inline-flex items-center gap-1.5 border border-gray-200 bg-white rounded-full px-4 py-2 text-sm text-[#686868]">
-            {t('perMonth')}
-            <ChevronDown size={15} />
-          </span>
+          <div className="flex items-center gap-3">
+            {/* Bug-24: download the whole revenue & reports data, scoped to a period. */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setExportMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={exportMenuOpen}
+                className="inline-flex items-center gap-1.5 border border-gray-200 bg-white rounded-full px-4 py-2 text-sm font-medium text-[#2D2F33] transition-colors hover:border-[#026F4F] hover:text-[#026F4F]"
+              >
+                <Download size={15} />
+                {t('exportReport')}
+              </button>
+              {exportMenuOpen && (
+                <div className="fixed inset-0 z-20" onClick={() => setExportMenuOpen(false)} />
+              )}
+              {exportMenuOpen && (
+                <div className="absolute end-0 top-[calc(100%+6px)] z-30 w-44 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                  {REPORT_PERIODS.map((p) => (
+                    <button
+                      key={p.period}
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportReport(p.period);
+                      }}
+                      className="block w-full px-4 py-2.5 text-start text-sm text-[#2D2F33] transition-colors hover:bg-[#026F4F]/5 hover:text-[#026F4F]"
+                    >
+                      {t(`reportPeriod.${p.period}`)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className="inline-flex items-center gap-1.5 border border-gray-200 bg-white rounded-full px-4 py-2 text-sm text-[#686868]">
+              {t('perMonth')}
+              <ChevronDown size={15} />
+            </span>
+          </div>
         </div>
 
         {/* KPI row */}

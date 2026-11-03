@@ -327,29 +327,33 @@ export default function SuperAdminDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {KPI_CARDS.map((card) => {
             const Icon = card.icon;
+            // Bug-23: KPI type sizes taken from Owner Dashboard StatCard
+            // (13px label / 24–28px value / 12px delta) — numbers were too big.
             return (
-              <div key={card.key} className="relative bg-white rounded-xl p-5 min-h-[169px] flex flex-col justify-center gap-3.5 overflow-hidden">
-                <span className="absolute top-[18px] end-5 w-[45px] h-[42px] bg-[#E9E9E9] rounded-md flex items-center justify-center text-[#2D2F33]">
-                  <Icon size={24} strokeWidth={1.8} />
+              <div key={card.key} className="relative bg-white rounded-xl px-4 py-3 min-h-[118px] flex flex-col justify-center gap-2 overflow-hidden">
+                <span className="absolute end-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9E9E9] text-[#2D2F33]">
+                  <Icon size={16} strokeWidth={1.8} />
                 </span>
-                <p className="font-medium text-[#686868] text-[19px] leading-[1.4] pe-16">{t(card.key as any)}</p>
-                <p className={`font-semibold text-[40px] leading-[1.4] ${'valueClass' in card ? card.valueClass : 'text-black'}`}>
-                  {'valuePrefix' in card && <span className={'valuePrefixClass' in card ? card.valuePrefixClass : ''}>{card.valuePrefix}</span>}
-                  {card.value}
-                </p>
+                <p className="font-medium text-[#686868] text-[13px] leading-snug pe-9">{t(card.key as any)}</p>
+                <div className="flex items-end gap-1">
+                  <p className={`text-[24px] xl:text-[28px] font-semibold leading-none ${'valueClass' in card ? card.valueClass : 'text-black'}`}>
+                    {'valuePrefix' in card && <span className={'valuePrefixClass' in card ? card.valuePrefixClass : ''}>{card.valuePrefix}</span>}
+                    {card.value}
+                  </p>
+                </div>
                 {'delta' in card && card.delta ? (
-                  <p className="flex items-center gap-2.5 text-[#158F15] text-base">
-                    <TrendingUp size={20} />
+                  <p className="flex items-center gap-1.5 text-[#158F15] text-[12px] leading-snug">
+                    <TrendingUp size={14} />
                     <span>{card.delta}</span>
                   </p>
                 ) : (
-                  <p className="text-[#989898] text-base">{'note' in card ? card.note : ''}</p>
+                  <p className="text-[#989898] text-[12px] leading-snug">{'note' in card ? card.note : ''}</p>
                 )}
                 {'viewModal' in card && card.viewModal ? (
                   <button
                     type="button"
                     onClick={() => setExpiringOpen(true)}
-                    className="inline-flex w-fit self-end items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-4 py-1.5 text-sm font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
+                    className="inline-flex w-fit self-end items-center gap-1.5 rounded-full bg-[#026F4F]/10 px-3 py-1.5 text-[12px] font-medium text-[#026F4F] transition-colors hover:bg-[#026F4F] hover:text-white"
                   >
                     {t('view')}
                     <ArrowRight size={15} className="rtl:scale-x-[-1]" />

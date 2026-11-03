@@ -325,6 +325,14 @@
       "topPlans": "الأعلى أداءً",
       "dateRangePicker": "النطاق الزمني",
       "perMonth": "شهريًا",
+      "exportReport": "تصدير التقرير",
+      "reportPeriod": {
+        "week": "الأسبوع الماضي",
+        "month": "الشهر الماضي",
+        "quarter": "ربع سنوي",
+        "semiAnnual": "نصف سنوي",
+        "annual": "سنوي"
+      },
       "activeRestaurants": "المطاعم النشطة",
       "totalOrders": "إجمالي الطلبات",
       "paidAccounts": "الحسابات المدفوعة",

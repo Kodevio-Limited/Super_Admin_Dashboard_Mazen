@@ -317,6 +317,14 @@
       "thisYear": "This Year",
       "custom": "Custom",
       "perMonth": "Per Month",
+      "exportReport": "Export Report",
+      "reportPeriod": {
+        "week": "Past Week",
+        "month": "Past Month",
+        "quarter": "Quarterly",
+        "semiAnnual": "Semi-Annual",
+        "annual": "Annual"
+      },
       "activeRestaurants": "Active Restaurants",
       "totalOrders": "Total orders",
       "paidAccounts": "Paid Accounts",

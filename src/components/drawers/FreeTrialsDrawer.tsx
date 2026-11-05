@@ -152,7 +152,7 @@ export default function FreeTrialsDrawer({ onClose }: FreeTrialsDrawerProps) {
                       {isAr ? (row.lastActive_ar ?? row.lastActive) : row.lastActive}
                     </span>
                     <span className="block truncate text-xs text-[#989898]">
-                      <bdi dir="ltr">{row.ownerEmail}</bdi>
+                      <bdi dir="ltr">{row.ownerPhone ?? row.ownerEmail}</bdi>
                     </span>
                   </td>
                 </tr>

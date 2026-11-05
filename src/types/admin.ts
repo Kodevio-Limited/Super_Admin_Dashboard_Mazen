@@ -163,6 +163,7 @@ export interface FreeTrial {
   ownerName: string;
   ownerName_ar?: string;
   ownerEmail: string;
+  ownerPhone?: string;
   startedOn: string;
   startedOn_ar?: string;
   /** Days remaining until the trial ends (0 = last day). */
